@@ -14,6 +14,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Autowired
     private JwtInterceptor jwtInterceptor;
     
+    @Autowired
+    private ContentCheckInterceptor contentCheckInterceptor;
+    
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(jwtInterceptor)
@@ -25,6 +28,12 @@ public class WebConfig implements WebMvcConfigurer {
                         "/assistant/**",
                         "/error"
                 );
+        
+        // 添加内容检测拦截器
+        registry.addInterceptor(contentCheckInterceptor)
+                .addPathPatterns("/assistant/chat", "/assistant/chat/stream")
+                .addPathPatterns("/comment/**")
+                .addPathPatterns("/admin/announcement/**");
     }
 }
 
