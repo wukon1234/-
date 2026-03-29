@@ -62,9 +62,8 @@ public class AssistantController {
             @Override
             public void onMessage(String chunk) {
                 try {
-                    emitter.send(SseEmitter.event()
-                            .data(chunk)
-                            .name("message"));
+                    // 直接发送data: 格式，与前端预期一致
+                    emitter.send("data: " + chunk + "\n\n");
                 } catch (IOException e) {
                     log.error("发送SSE消息失败", e);
                     emitter.completeWithError(e);
@@ -76,9 +75,8 @@ public class AssistantController {
                 // 流式输出完成后，商品推荐已在保存消息时处理
                 // 这里发送完成信号
                 try {
-                    emitter.send(SseEmitter.event()
-                            .data("[DONE]")
-                            .name("done"));
+                    // 直接发送data: [DONE] 格式，与前端预期一致
+                    emitter.send("data: [DONE]\n\n");
                     emitter.complete();
                 } catch (IOException e) {
                     log.error("完成SSE流失败", e);
@@ -98,9 +96,8 @@ public class AssistantController {
                 try {
                     java.util.Map<String, Object> productsData = new java.util.HashMap<>();
                     productsData.put("products", products);
-                    emitter.send(SseEmitter.event()
-                            .data(com.alibaba.fastjson2.JSON.toJSONString(productsData))
-                            .name("products"));
+                    // 直接发送data: 格式，与前端预期一致
+                    emitter.send("data: " + com.alibaba.fastjson2.JSON.toJSONString(productsData) + "\n\n");
                 } catch (IOException e) {
                     log.error("发送商品推荐失败", e);
                 }
@@ -152,5 +149,16 @@ public class AssistantController {
     public Result<?> syncProductVectors() {
         simpleRAGService.init(); // 会根据配置决定是否自动同步
         return Result.success("已触发初始化/同步（如未开启向量检索则无动作）");
+    }
+
+    /**
+     * （扩展）RAG调试接口：直接查看RAG检索到的商品
+     * 便于本地调试关键词/向量检索效果
+     */
+    @GetMapping("/rag/debug/search")
+    public Result<?> debugRagSearch(@RequestParam("q") String query,
+                                    @RequestParam(value = "topK", defaultValue = "5") Integer topK) {
+        java.util.List<com.mall.entity.Product> products = simpleRAGService.searchProducts(query, topK == null ? 5 : topK);
+        return Result.success(products);
     }
 }

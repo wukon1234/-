@@ -22,6 +22,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/user/login",
                         "/user/register",
                         "/user/admin/login",
+                        "/assistant/**",
                         "/error"
                 );
     }

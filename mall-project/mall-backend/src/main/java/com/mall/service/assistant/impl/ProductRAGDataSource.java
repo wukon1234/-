@@ -27,7 +27,7 @@ public class ProductRAGDataSource implements RAGDataSource {
     
     @Override
     public List<Map<String, Object>> search(String query, int topK, Map<String, Object> filters) {
-        // 查询商品列表
+        // 1. 查询候选商品列表（先按状态、可选过滤条件筛一遍）
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Product> queryWrapper = 
             new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Product>()
                 .eq(Product::getStatus, 1); // 只查询上架商品
@@ -47,15 +47,17 @@ public class ProductRAGDataSource implements RAGDataSource {
         
         List<Product> products = productMapper.selectList(queryWrapper);
         
-        // 简单的关键词匹配（后续可以用向量搜索替换）
-        List<Product> matchedProducts = products.stream()
-            .filter(product -> matchesQuery(product, query))
+        // 2. 计算简单匹配得分，按得分排序后截断
+        List<ProductScore> scored = products.stream()
+            .map(p -> new ProductScore(p, scoreProduct(p, query)))
+            .filter(ps -> ps.score > 0) // 过滤掉完全不匹配的
+            .sorted((a, b) -> Float.compare(b.score, a.score))
             .limit(topK)
             .collect(Collectors.toList());
         
-        // 转换为Map格式
-        return matchedProducts.stream()
-            .map(this::toMap)
+        // 3. 转换为Map格式
+        return scored.stream()
+            .map(ps -> toMap(ps.product))
             .collect(Collectors.toList());
     }
     
@@ -82,16 +84,50 @@ public class ProductRAGDataSource implements RAGDataSource {
     }
     
     /**
-     * 判断商品是否匹配查询
+     * 简单打分：名称 > 描述 > 规格，支持中英文、模糊匹配与多关键词
      */
-    private boolean matchesQuery(Product product, String query) {
+    private float scoreProduct(Product product, String query) {
         if (query == null || query.trim().isEmpty()) {
-            return true;
+            // 无查询时返回基础分，让“热门商品”等场景可以直接走召回逻辑
+            return 1.0f;
         }
-        
-        String lowerQuery = query.toLowerCase();
-        return (product.getName() != null && product.getName().toLowerCase().contains(lowerQuery)) ||
-               (product.getDescription() != null && product.getDescription().toLowerCase().contains(lowerQuery));
+
+        String q = query.trim().toLowerCase();
+        // 按空格/中文逗号/英文逗号拆分成若干关键词
+        String[] keywords = q.split("[,，\\s]+");
+
+        String name = product.getName() == null ? "" : product.getName().toLowerCase();
+        String desc = product.getDescription() == null ? "" : product.getDescription().toLowerCase();
+        String specs = product.getSpecs() == null ? "" : product.getSpecs().toLowerCase();
+
+        float score = 0f;
+        for (String kw : keywords) {
+            if (kw.isEmpty()) continue;
+
+            // 完全包含给予较高权重，出现在名称比分数更高
+            if (name.contains(kw)) {
+                score += 5f;
+            } else if (desc.contains(kw)) {
+                score += 3f;
+            } else if (specs.contains(kw)) {
+                score += 2f;
+            }
+        }
+
+        // 价格区间类问法（例如“便宜”“高端”等）可以根据价格做一个粗略奖励/惩罚（可选）
+        if (score > 0 && product.getPrice() != null) {
+            float price = product.getPrice().floatValue();
+            String raw = query;
+            if (raw.contains("便宜") || raw.contains("入门") || raw.toLowerCase().contains("cheap")) {
+                // 价格越低，额外加分越多（简单反比）
+                score += Math.max(0f, 10000f / (price + 1f)) * 0.01f;
+            } else if (raw.contains("高端") || raw.contains("旗舰") || raw.toLowerCase().contains("expensive")) {
+                // 价格越高，额外加分越多
+                score += Math.min(price, 20000f) * 0.001f;
+            }
+        }
+
+        return score;
     }
     
     /**
@@ -109,6 +145,19 @@ public class ProductRAGDataSource implements RAGDataSource {
         map.put("imageUrl", product.getImageUrl());
         map.put("specs", product.getSpecs());
         return map;
+    }
+
+    /**
+     * 内部打分结构体
+     */
+    private static class ProductScore {
+        private final Product product;
+        private final float score;
+
+        private ProductScore(Product product, float score) {
+            this.product = product;
+            this.score = score;
+        }
     }
 }
 

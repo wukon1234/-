@@ -206,19 +206,33 @@ public class AssistantServiceImpl implements AssistantService {
      */
     private String buildPrompt(String userMessage, List<com.mall.entity.Product> products, Long conversationId) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("你是一个专业的电商购物助手，你的任务是帮助用户解答购物相关问题。\n\n");
-        
+        prompt.append("你是一个专业的【商城智能购物助手】，只回答与本商城购物相关的问题，")
+              .append("例如：商品咨询、选品对比、库存与价格、下单流程、支付方式、配送与物流、售后与退换货等。\n")
+              .append("如果用户的问题与商城无关，请礼貌说明“我目前只能回答本商城相关的问题”。\n\n");
+
+        prompt.append("以下是根据用户问题在商城中检索到的商品信息（如果有）：\n");
         if (products != null && !products.isEmpty()) {
-            prompt.append("当前商品信息：\n");
+            int index = 1;
             for (com.mall.entity.Product product : products) {
-                prompt.append(String.format("- %s：%s，价格：%.2f元\n", 
-                    product.getName(), product.getDescription(), product.getPrice()));
+                prompt.append(String.format(
+                    "%d. 商品名称：%s；简介：%s；价格：%s 元。\n",
+                    index++,
+                    product.getName(),
+                    product.getDescription() == null ? "暂无描述" : product.getDescription(),
+                    product.getPrice() == null ? "暂无定价" : product.getPrice().toPlainString()
+                ));
             }
-            prompt.append("\n");
+        } else {
+            prompt.append("（当前未检索到相关商品，你仍然可以基于商城的一般规则进行说明和引导。）\n");
         }
-        
+        prompt.append("\n");
+
         prompt.append("当前用户问题：").append(userMessage).append("\n\n");
-        prompt.append("请根据以上信息，为用户提供准确、友好的回答。如果需要推荐商品，请明确指出商品名称和价格。");
+        prompt.append("回答要求：\n")
+              .append("1）使用简体中文，语气友好、专业，分点或分段回答，提高可读性；\n")
+              .append("2）当推荐上方列表中的商品时，请直接引用商品名称并结合价格做具体推荐理由；\n")
+              .append("3）涉及下单/支付/配送/售后等流程时，请按照常见电商流程清晰分步骤说明；\n")
+              .append("4）如果信息不确定，不要胡乱编造，可以给出“当前系统暂不支持自动查询，请联系客服或在订单页查看”等安全回答。\n");
         
         return prompt.toString();
     }

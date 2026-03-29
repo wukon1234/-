@@ -22,5 +22,7 @@ public class CartItemDTO {
     private Product product;
     
     private BigDecimal subtotal;  // 小计金额
+
+    private  BigDecimal total;  //商品总价
 }
 

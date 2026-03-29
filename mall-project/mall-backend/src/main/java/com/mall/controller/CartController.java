@@ -78,5 +78,6 @@ public class CartController {
         cartService.clearCart(userId);
         return Result.success("清空成功");
     }
+    // TODO: 2026/1/13 购物车商品总费用
 }
 

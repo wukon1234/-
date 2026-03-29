@@ -16,5 +16,5 @@ spring:
 llm:
   provider: qwen
   qwen:
-    api-key: your-qwen-api-key-here
+    api-key: sk-1a4df20be5cb44e0ab482e77f7b713fe
     base-url: https://dashscope.aliyuncs.com/api/v1

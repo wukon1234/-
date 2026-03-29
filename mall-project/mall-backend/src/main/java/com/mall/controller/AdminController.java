@@ -1,12 +1,15 @@
 package com.mall.controller;
 
 import com.mall.common.Result;
+import com.mall.dto.LoginRequest;
+import com.mall.dto.LoginResponse;
 import com.mall.entity.Product;
 import com.mall.entity.User;
 import com.mall.service.ProductService;
 import com.mall.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -94,5 +97,17 @@ public class AdminController {
     public Result<?> updateUserRole(@PathVariable Long id, @RequestParam Integer role) {
         // 这里可以添加更新用户角色的逻辑
         return Result.success("用户角色更新成功");
+
+    }
+
+    /**
+     * 管理员登录
+     * @param request
+     * @return
+     */
+    @PostMapping("/login")
+    public Result<LoginResponse> adminLogin(@Validated @RequestBody LoginRequest request) {
+        LoginResponse response = userService.adminLogin(request);
+        return Result.success(response);
     }
 }
