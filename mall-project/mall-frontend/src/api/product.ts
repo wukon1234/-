@@ -35,4 +35,21 @@ export const getNewProducts = (limit = 8) => {
   return request.get<Product[]>('/products/new', { params: { limit } })
 }
 
+export interface AIProductRequest {
+  productName: string
+  keywords: string
+  targetAudience: string
+}
+
+export interface AIProductResponse {
+  title: string
+  summary: string
+  description: string
+  sellingPoints: string
+}
+
+export const generateProductContent = (data: AIProductRequest) => {
+  return request.post<AIProductResponse>('/products/generate-content', data)
+}
+
 

@@ -1,6 +1,8 @@
 package com.mall.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.mall.dto.AIProductRequestDTO;
+import com.mall.dto.AIProductResponseDTO;
 import com.mall.entity.Product;
 import java.util.List;
 
@@ -38,4 +40,9 @@ public interface ProductService extends IService<Product> {
      * 获取最新商品
      */
     List<Product> getNewProducts(Integer limit);
+    
+    /**
+     * AI生成商品文案
+     */
+    AIProductResponseDTO generateProductContent(AIProductRequestDTO request);
 }

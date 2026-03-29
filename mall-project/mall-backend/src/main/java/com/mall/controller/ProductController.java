@@ -1,6 +1,8 @@
 package com.mall.controller;
 
 import com.mall.common.Result;
+import com.mall.dto.AIProductRequestDTO;
+import com.mall.dto.AIProductResponseDTO;
 import com.mall.entity.Product;
 import com.mall.service.ProductService;
 import lombok.extern.slf4j.Slf4j;
@@ -82,5 +84,20 @@ public class ProductController {
             @RequestParam(defaultValue = "10") Integer limit) {
         List<Product> products = productService.getNewProducts(limit);
         return Result.success(products);
+    }
+    
+    /**
+     * AI生成商品文案
+     */
+    @PostMapping("/generate-content")
+    public Result<AIProductResponseDTO> generateProductContent(@RequestBody AIProductRequestDTO request) {
+        try {
+            // 调用服务层生成商品文案
+            AIProductResponseDTO result = productService.generateProductContent(request);
+            return Result.success(result);
+        } catch (Exception e) {
+            log.error("生成商品文案失败", e);
+            return Result.error(e.getMessage());
+        }
     }
 }

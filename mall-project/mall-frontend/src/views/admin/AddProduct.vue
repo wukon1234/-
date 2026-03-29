@@ -76,6 +76,14 @@
             :rows="5"
             placeholder="请输入商品描述"
           />
+          <el-button
+            type="primary"
+            :icon="ChatLineRound"
+            @click="handleAIGenerate"
+            style="margin-top: 10px"
+          >
+            AI自动生成商品描述
+          </el-button>
         </el-form-item>
         
         <el-form-item>
@@ -90,9 +98,10 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Upload } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ArrowLeft, Upload, ChatLineRound } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, UploadFile } from 'element-plus'
+import { generateProductContent, type AIProductRequest, type AIProductResponse } from '@/api/product'
 
 const router = useRouter()
 const productFormRef = ref<FormInstance>()
@@ -193,6 +202,107 @@ const handleReset = () => {
     fileList.value = []
   }
 }
+
+// AI生成商品描述
+const handleAIGenerate = async () => {
+  try {
+    // 弹出输入框，收集商品信息
+    const { value: formData } = await ElMessageBox.prompt(
+      `
+        <div style="padding: 20px;">
+          <el-form label-width="100px">
+            <el-form-item label="商品名称">
+              <el-input v-model="aiFormData.productName" placeholder="请输入商品名称" />
+            </el-form-item>
+            <el-form-item label="关键词">
+              <el-input v-model="aiFormData.keywords" placeholder="请输入关键词，多个关键词用逗号分隔" />
+            </el-form-item>
+            <el-form-item label="适用人群">
+              <el-input v-model="aiFormData.targetAudience" placeholder="请输入适用人群" />
+            </el-form-item>
+          </el-form>
+        </div>
+      `,
+      'AI生成商品描述',
+      {
+        confirmButtonText: '生成',
+        cancelButtonText: '取消',
+        inputPattern: /.+/,
+        inputErrorMessage: '请填写完整信息',
+        dangerouslyUseHTMLString: true,
+        customClass: 'ai-generate-dialog'
+      }
+    )
+
+    // 验证输入
+    if (!aiFormData.productName || !aiFormData.keywords || !aiFormData.targetAudience) {
+      ElMessage.warning('请填写完整的商品信息')
+      return
+    }
+
+    // 显示加载状态
+    loading.value = true
+
+    // 调用API生成商品文案
+    const response = await generateProductContent({
+      productName: aiFormData.productName,
+      keywords: aiFormData.keywords,
+      targetAudience: aiFormData.targetAudience
+    })
+
+    // 回填到表单
+    const data = response.data
+    if (data.title) productForm.name = data.title
+    if (data.description) productForm.description = data.description
+
+    // 显示成功消息
+    ElMessage.success('商品文案生成成功')
+
+    // 可以选择是否显示生成的所有内容
+    ElMessageBox.alert(
+      `
+        <div style="padding: 20px;">
+          <h3 style="margin-bottom: 15px;">生成的商品文案</h3>
+          <div style="margin-bottom: 15px;">
+            <strong>商品标题：</strong>
+            <p>${data.title || '无'}</p>
+          </div>
+          <div style="margin-bottom: 15px;">
+            <strong>商品简介：</strong>
+            <p>${data.summary || '无'}</p>
+          </div>
+          <div style="margin-bottom: 15px;">
+            <strong>商品详细描述：</strong>
+            <p>${data.description || '无'}</p>
+          </div>
+          <div style="margin-bottom: 15px;">
+            <strong>营销卖点：</strong>
+            <p>${data.sellingPoints || '无'}</p>
+          </div>
+        </div>
+      `,
+      '生成结果',
+      {
+        confirmButtonText: '确定',
+        dangerouslyUseHTMLString: true
+      }
+    )
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error('生成商品文案失败，请稍后重试')
+      console.error('生成商品文案失败:', error)
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+// AI生成表单数据
+const aiFormData = reactive({
+  productName: '',
+  keywords: '',
+  targetAudience: ''
+})
 </script>
 
 <style scoped lang="scss">
