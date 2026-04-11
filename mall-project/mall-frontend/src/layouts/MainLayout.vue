@@ -17,6 +17,7 @@
           <el-menu-item index="/orders">订单</el-menu-item>
           <el-menu-item index="/address">地址</el-menu-item>
           <el-menu-item index="/profile">个人中心</el-menu-item>
+          <el-menu-item index="/favorites">收藏</el-menu-item>
           <el-menu-item index="/assistant">
             <el-icon><ChatDotRound /></el-icon>
             <span>智能助手</span>

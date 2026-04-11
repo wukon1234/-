@@ -70,6 +70,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'Assistant',
         component: () => import('@/views/Assistant.vue'),
         meta: { title: '智能助手', requiresAuth: true }
+      },
+      {
+        path: 'favorites',
+        name: 'FavoriteList',
+        component: () => import('@/views/FavoriteList.vue'),
+        meta: { title: '我的收藏', requiresAuth: true }
       }
     ]
   },
