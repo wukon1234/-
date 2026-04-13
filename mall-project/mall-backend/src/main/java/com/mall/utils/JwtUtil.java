@@ -6,6 +6,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import javax.annotation.PostConstruct;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -20,17 +21,15 @@ import java.util.Map;
 @Component
 public class JwtUtil {
     
-    @Value("${jwt.secret:mall-secret-key-2024}")
-    private String secret;
-    
     @Value("${jwt.expiration:86400000}")
     private Long expiration;
     
     private SecretKey secretKey;
     
-    // 在构造函数或初始化方法中创建安全的密钥
-    public JwtUtil() {
-        // 使用 io.jsonwebtoken.security.Keys#secretKeyFor 方法生成安全的密钥
+    // 初始化方法中创建安全的密钥
+    @PostConstruct
+    public void init() {
+        // 使用Keys.secretKeyFor方法生成安全的密钥
         this.secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
     }
     

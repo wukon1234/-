@@ -58,6 +58,10 @@
             </template>
             <el-menu-item index="/admin/users">用户列表</el-menu-item>
           </el-sub-menu>
+          <el-menu-item index="/admin/assistant">
+            <el-icon><ChatLineSquare /></el-icon>
+            <span>智能助手管理</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
       
@@ -72,7 +76,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
-import { DataAnalysis, Box, Document, User, ArrowDown } from '@element-plus/icons-vue'
+import { DataAnalysis, Box, Document, User, ArrowDown, ChatLineSquare } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -80,8 +84,16 @@ const userStore = useUserStore()
 
 const activeMenu = computed(() => route.path)
 
-const handleMenuSelect = (path: string) => {
-  router.push(path)
+const handleMenuSelect = (key: string, keyPath: string[]) => {
+  // 确保key是字符串类型的路由路径
+  if (typeof key === 'string') {
+    if (key.startsWith('/')) {
+      router.push(key)
+    } else {
+      // 对于非路由路径的key，忽略处理
+      console.log('Non-route key selected:', key)
+    }
+  }
 }
 
 const handleCommand = (command: string) => {

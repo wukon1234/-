@@ -137,6 +137,6 @@ rag:
   # - vector: 语义检索（需要 embedding.provider=openai + Chroma）
   search-mode: keyword
   # 是否开启向量检索能力（开启后仍可用search-mode控制是否使用）
-  vector-enabled: false
+  vector-enabled: true
   # 启动时是否自动同步商品向量（毕设数据量小可开启）
-  vector-auto-sync: false
+  vector-auto-sync: true

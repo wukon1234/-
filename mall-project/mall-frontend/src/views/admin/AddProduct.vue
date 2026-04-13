@@ -129,15 +129,42 @@ const productRules = reactive({
   ],
   price: [
     { required: true, message: '请输入商品价格', trigger: 'blur' },
-    { type: 'number', min: 0.01, message: '商品价格必须大于0', trigger: 'blur' }
+    {
+      validator: (rule, value, callback) => {
+        if (typeof value === 'number' && value > 0) {
+          callback()
+        } else {
+          callback(new Error('商品价格必须大于0'))
+        }
+      },
+      trigger: 'blur'
+    }
   ],
   stock: [
     { required: true, message: '请输入商品库存', trigger: 'blur' },
-    { type: 'number', min: 0, message: '商品库存必须大于等于0', trigger: 'blur' }
+    {
+      validator: (rule, value, callback) => {
+        if (typeof value === 'number' && value >= 0) {
+          callback()
+        } else {
+          callback(new Error('商品库存必须大于等于0'))
+        }
+      },
+      trigger: 'blur'
+    }
   ],
   description: [
     { required: true, message: '请输入商品描述', trigger: 'blur' },
-    { min: 10, message: '商品描述长度不能少于10个字符', trigger: 'blur' }
+    {
+      validator: (rule, value, callback) => {
+        if (value && value.length >= 10) {
+          callback()
+        } else {
+          callback(new Error('商品描述长度不能少于10个字符'))
+        }
+      },
+      trigger: 'blur'
+    }
   ]
 })
 
@@ -206,49 +233,24 @@ const handleReset = () => {
 // AI生成商品描述
 const handleAIGenerate = async () => {
   try {
-    // 弹出输入框，收集商品信息
-    const { value: formData } = await ElMessageBox.prompt(
-      `
-        <div style="padding: 20px;">
-          <el-form label-width="100px">
-            <el-form-item label="商品名称">
-              <el-input v-model="aiFormData.productName" placeholder="请输入商品名称" />
-            </el-form-item>
-            <el-form-item label="关键词">
-              <el-input v-model="aiFormData.keywords" placeholder="请输入关键词，多个关键词用逗号分隔" />
-            </el-form-item>
-            <el-form-item label="适用人群">
-              <el-input v-model="aiFormData.targetAudience" placeholder="请输入适用人群" />
-            </el-form-item>
-          </el-form>
-        </div>
-      `,
-      'AI生成商品描述',
-      {
-        confirmButtonText: '生成',
-        cancelButtonText: '取消',
-        inputPattern: /.+/,
-        inputErrorMessage: '请填写完整信息',
-        dangerouslyUseHTMLString: true,
-        customClass: 'ai-generate-dialog'
-      }
-    )
-
-    // 验证输入
-    if (!aiFormData.productName || !aiFormData.keywords || !aiFormData.targetAudience) {
-      ElMessage.warning('请填写完整的商品信息')
+    // 检查商品名称是否已填写
+    if (!productForm.name) {
+      ElMessage.warning('请先填写商品名称')
       return
     }
 
     // 显示加载状态
     loading.value = true
 
+    // 准备生成参数，使用表单中已有的信息
+    const generateParams = {
+      productName: productForm.name,
+      keywords: getCategoryName(productForm.categoryId) || '高品质,热销',
+      targetAudience: '所有用户'
+    }
+
     // 调用API生成商品文案
-    const response = await generateProductContent({
-      productName: aiFormData.productName,
-      keywords: aiFormData.keywords,
-      targetAudience: aiFormData.targetAudience
-    })
+    const response = await generateProductContent(generateParams)
 
     // 回填到表单
     const data = response.data
@@ -297,12 +299,17 @@ const handleAIGenerate = async () => {
   }
 }
 
-// AI生成表单数据
-const aiFormData = reactive({
-  productName: '',
-  keywords: '',
-  targetAudience: ''
-})
+// 根据分类ID获取分类名称
+const getCategoryName = (categoryId: string | number) => {
+  const categoryMap: Record<string | number, string> = {
+    1: '手机,数码,科技',
+    2: '电脑,办公,科技',
+    3: '服装,时尚,潮流',
+    4: '家居,生活,舒适',
+    5: '电子产品,数码,科技'
+  }
+  return categoryMap[categoryId] || ''
+}
 </script>
 
 <style scoped lang="scss">

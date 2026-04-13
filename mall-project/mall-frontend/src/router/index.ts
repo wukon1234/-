@@ -119,10 +119,22 @@ const routes: Array<RouteRecordRaw> = [
         meta: { title: '订单列表', requiresAuth: true }
       },
       {
+        path: 'orders/analysis',
+        name: 'AdminOrderAnalysis',
+        component: () => import('@/views/admin/OrderAnalysis.vue'),
+        meta: { title: '订单分析', requiresAuth: true }
+      },
+      {
         path: 'users',
         name: 'AdminUserList',
         component: () => import('@/views/admin/UserList.vue'),
         meta: { title: '用户列表', requiresAuth: true }
+      },
+      {
+        path: 'assistant',
+        name: 'AdminAssistant',
+        component: () => import('@/views/admin/AdminAssistant.vue'),
+        meta: { title: '智能助手管理', requiresAuth: true }
       }
     ]
   }

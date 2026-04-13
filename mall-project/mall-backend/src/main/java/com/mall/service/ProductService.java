@@ -45,4 +45,24 @@ public interface ProductService extends IService<Product> {
      * AI生成商品文案
      */
     AIProductResponseDTO generateProductContent(AIProductRequestDTO request);
+    
+    /**
+     * 添加商品
+     */
+    boolean addProduct(Product product);
+    
+    /**
+     * 更新商品
+     */
+    boolean updateProduct(Product product);
+    
+    /**
+     * 删除商品
+     */
+    boolean deleteProduct(Long id);
+    
+    /**
+     * 更新商品状态
+     */
+    boolean updateProductStatus(Long id, Integer status);
 }

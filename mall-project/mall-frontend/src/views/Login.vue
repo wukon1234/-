@@ -69,14 +69,14 @@ const handleLogin = async () => {
     loading.value = true
     
     const res = await login(loginForm)
-    userStore.setToken(res.data.token)
+    userStore.setToken(res.token)
     // 后端返回的是直接的用户信息，不是包含在user对象中
     userStore.setUserInfo({
-      id: res.data.userId,
-      username: res.data.username,
-      avatar: res.data.avatar
+      id: res.userId,
+      username: res.username,
+      avatar: res.avatar
     })
-    localStorage.setItem('userId', String(res.data.userId))
+    localStorage.setItem('userId', String(res.userId))
     
     ElMessage.success('登录成功')
     router.push('/home')

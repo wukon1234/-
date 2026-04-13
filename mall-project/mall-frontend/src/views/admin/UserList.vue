@@ -88,13 +88,52 @@
         />
       </div>
     </el-card>
+    
+    <!-- 编辑用户对话框 -->
+    <el-dialog
+      v-model="editDialogVisible"
+      title="编辑用户"
+      width="500px"
+    >
+      <el-form :model="editForm" label-width="80px">
+        <el-form-item label="用户名">
+          <el-input v-model="editForm.username" disabled />
+        </el-form-item>
+        <el-form-item label="邮箱">
+          <el-input v-model="editForm.email" />
+        </el-form-item>
+        <el-form-item label="电话">
+          <el-input v-model="editForm.phone" />
+        </el-form-item>
+        <el-form-item label="角色">
+          <el-select v-model="editForm.role">
+            <el-option label="普通用户" value="1" />
+            <el-option label="管理员" value="2" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-switch
+            v-model="editForm.status"
+            active-value="1"
+            inactive-value="0"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="editDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleSaveEdit">保存</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { Search, Edit, SwitchButton } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { getUserList, updateUser, updateUserStatus, updateUserRole } from '@/api/user'
 
 // 搜索表单
 const searchForm = reactive({
@@ -103,15 +142,6 @@ const searchForm = reactive({
   role: ''
 })
 
-// 用户列表数据
-const userList = ref([
-  { id: 1, username: 'admin', email: 'admin@example.com', phone: '13800138000', role: 2, status: 1, createTime: '2024-01-01 10:00:00' },
-  { id: 2, username: 'test1', email: 'test1@example.com', phone: '13800138001', role: 1, status: 1, createTime: '2024-01-02 14:30:00' },
-  { id: 3, username: 'test2', email: 'test2@example.com', phone: '13800138002', role: 1, status: 1, createTime: '2024-01-03 09:15:00' },
-  { id: 4, username: 'test3', email: 'test3@example.com', phone: '13800138003', role: 1, status: 0, createTime: '2024-01-04 16:45:00' },
-  { id: 5, username: 'test4', email: 'test4@example.com', phone: '13800138004', role: 1, status: 1, createTime: '2024-01-05 11:20:00' }
-])
-
 // 分页信息
 const pagination = reactive({
   currentPage: 1,
@@ -119,10 +149,48 @@ const pagination = reactive({
   total: 5
 })
 
+// 编辑对话框
+const editDialogVisible = ref(false)
+const editForm = reactive({
+  id: '',
+  username: '',
+  email: '',
+  phone: '',
+  role: '',
+  status: ''
+})
+
+// 加载状态
+const loading = ref(false)
+
+// 用户列表数据
+const userList = ref([])
+
+// 初始化加载用户列表
+const loadUserList = async () => {
+  loading.value = true
+  try {
+    const response = await getUserList({
+      keyword: searchForm.keyword,
+      status: searchForm.status,
+      role: searchForm.role,
+      page: pagination.currentPage,
+      pageSize: pagination.pageSize
+    })
+    userList.value = response.data
+    pagination.total = response.data.length
+  } catch (error) {
+    ElMessage.error('获取用户列表失败')
+    console.error('获取用户列表失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
 // 搜索
 const handleSearch = () => {
-  console.log('搜索条件', searchForm)
-  // 这里可以添加搜索逻辑
+  pagination.currentPage = 1
+  loadUserList()
 }
 
 // 重置搜索
@@ -135,34 +203,90 @@ const resetSearch = () => {
 
 // 编辑用户
 const handleEdit = (row: any) => {
-  console.log('编辑用户', row)
-  // 这里可以添加编辑用户逻辑
+  // 填充编辑表单
+  editForm.id = row.id
+  editForm.username = row.username
+  editForm.email = row.email
+  editForm.phone = row.phone
+  editForm.role = row.role
+  editForm.status = row.status
+  // 显示编辑对话框
+  editDialogVisible.value = true
+}
+
+// 保存编辑
+const handleSaveEdit = async () => {
+  loading.value = true
+  try {
+    await updateUser({
+      id: editForm.id,
+      email: editForm.email,
+      phone: editForm.phone,
+      role: editForm.role,
+      status: editForm.status
+    })
+    ElMessage.success('用户信息更新成功')
+    // 重新加载用户列表
+    loadUserList()
+  } catch (error) {
+    ElMessage.error('更新用户信息失败')
+    console.error('更新用户信息失败:', error)
+  } finally {
+    loading.value = false
+    editDialogVisible.value = false
+  }
 }
 
 // 切换用户状态
-const handleStatusChange = (row: any) => {
-  console.log('用户状态变更', row)
-  // 这里可以添加状态变更逻辑
+const handleStatusChange = async (row: any) => {
+  loading.value = true
+  try {
+    await updateUserStatus(row.id, row.status)
+    ElMessage.success(`用户 ${row.username} 状态已更新`)
+  } catch (error) {
+    ElMessage.error('更新用户状态失败')
+    console.error('更新用户状态失败:', error)
+    // 恢复原始状态
+    loadUserList()
+  } finally {
+    loading.value = false
+  }
 }
 
 // 切换用户角色
-const handleRoleChange = (row: any) => {
-  row.role = row.role === 2 ? 1 : 2
-  ElMessage.success(`用户 ${row.username} 已${row.role === 2 ? '设为管理员' : '取消管理员'}`)
-  // 这里可以添加角色变更逻辑
+const handleRoleChange = async (row: any) => {
+  const newRole = row.role === 2 ? 1 : 2
+  loading.value = true
+  try {
+    await updateUserRole(row.id, newRole)
+    row.role = newRole
+    ElMessage.success(`用户 ${row.username} 已${newRole === 2 ? '设为管理员' : '取消管理员'}`)
+  } catch (error) {
+    ElMessage.error('更新用户角色失败')
+    console.error('更新用户角色失败:', error)
+    // 重新加载用户列表
+    loadUserList()
+  } finally {
+    loading.value = false
+  }
 }
 
 // 分页大小变更
 const handleSizeChange = (size: number) => {
   pagination.pageSize = size
-  // 这里可以添加分页逻辑
+  loadUserList()
 }
 
 // 当前页变更
 const handleCurrentChange = (current: number) => {
   pagination.currentPage = current
-  // 这里可以添加分页逻辑
+  loadUserList()
 }
+
+// 初始化加载
+onMounted(() => {
+  loadUserList()
+})
 </script>
 
 <style scoped lang="scss">

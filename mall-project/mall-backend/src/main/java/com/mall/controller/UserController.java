@@ -63,6 +63,12 @@ public class UserController {
     /**
      * 管理员登录
      */
+    @PostMapping("/admin/login")
+    public Result<LoginResponse> adminLogin(@Validated @RequestBody LoginRequest request) {
+        log.info("管理员登录: {}", request.getUsername());
+        LoginResponse response = userService.adminLogin(request);
+        return Result.success(response);
+    }
 
 }
 

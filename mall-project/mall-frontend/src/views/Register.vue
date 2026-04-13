@@ -95,7 +95,13 @@ const handleRegister = async () => {
     await registerFormRef.value.validate()
     loading.value = true
     
-    await register(registerForm)
+    // 只传递后端需要的字段
+    await register({
+      username: registerForm.username,
+      password: registerForm.password,
+      email: registerForm.email,
+      phone: registerForm.phone
+    })
     ElMessage.success('注册成功，请登录')
     router.push('/login')
   } catch (error: any) {

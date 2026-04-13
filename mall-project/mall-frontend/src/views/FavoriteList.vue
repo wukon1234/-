@@ -26,13 +26,13 @@
         @click="changePage(page - 1)" 
         :disabled="page === 1"
       >
-        上一�?      </button>
+        上一�?      </button>
       <span>{{ page }} / {{ Math.ceil(total / pageSize) }}</span>
       <button 
         @click="changePage(page + 1)" 
         :disabled="page >= Math.ceil(total / pageSize)"
       >
-        下一�?      </button>
+        下一�?      </button>
     </div>
   </div>
 </template>
