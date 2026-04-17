@@ -100,4 +100,54 @@ public class ProductController {
             return Result.error(e.getMessage());
         }
     }
+    
+    /**
+     * 添加商品
+     */
+    @PostMapping
+    public Result<Boolean> addProduct(@RequestBody Product product) {
+        boolean result = productService.addProduct(product);
+        return Result.success(result);
+    }
+    
+    /**
+     * 更新商品
+     */
+    @PutMapping
+    public Result<Boolean> updateProduct(@RequestBody Product product) {
+        boolean result = productService.updateProduct(product);
+        return Result.success(result);
+    }
+    
+    /**
+     * 删除商品
+     */
+    @DeleteMapping("/{id}")
+    public Result<Boolean> deleteProduct(@PathVariable Long id) {
+        boolean result = productService.deleteProduct(id);
+        return Result.success(result);
+    }
+    
+    /**
+     * 更新商品状态
+     */
+    @PutMapping("/{id}/status")
+    public Result<Boolean> updateProductStatus(@PathVariable Long id, @RequestParam Integer status) {
+        boolean result = productService.updateProductStatus(id, status);
+        return Result.success(result);
+    }
+    
+    /**
+     * 管理员获取商品列表（包含所有状态）
+     */
+    @GetMapping("/admin/list")
+    public Result<List<Product>> getAdminProductList(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        List<Product> productList = productService.list(
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Product>()
+                .orderByDesc(Product::getCreateTime)
+        );
+        return Result.success(productList);
+    }
 }

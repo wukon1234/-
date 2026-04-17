@@ -52,4 +52,24 @@ export const generateProductContent = (data: AIProductRequest) => {
   return request.post<AIProductResponse>('/products/generate-content', data)
 }
 
+export const addProduct = (product: Product) => {
+  return request.post<boolean>('/products', product)
+}
+
+export const updateProduct = (product: Product) => {
+  return request.put<boolean>('/products', product)
+}
+
+export const deleteProduct = (id: number) => {
+  return request.delete<boolean>(`/products/${id}`)
+}
+
+export const updateProductStatus = (id: number, status: number) => {
+  return request.put<boolean>(`/products/${id}/status`, null, { params: { status } })
+}
+
+export const getAdminProductList = (page = 1, size = 10) => {
+  return request.get<Product[]>('/products/admin/list', { params: { page, size } })
+}
+
 
