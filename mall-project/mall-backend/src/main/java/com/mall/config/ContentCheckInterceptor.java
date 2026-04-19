@@ -28,29 +28,23 @@ public class ContentCheckInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // 需要进行内容检测的路径
         String requestURI = request.getRequestURI();
-        
-        // 检查是否需要进行内容检测
+
         if (needContentCheck(requestURI)) {
-            // 读取请求体
             String requestBody = readRequestBody(request);
             log.info("拦截到请求: {}, 请求体: {}", requestURI, requestBody);
-            
-            // 提取需要检测的内容
+
             String content = extractContent(requestBody, requestURI);
             if (content != null && !content.isEmpty()) {
-                // 检测内容是否违规
                 boolean isViolation = aiContentCheckService.isContentViolation(content);
                 if (isViolation) {
-                    // 返回违规提示
                     response.setContentType("application/json;charset=UTF-8");
                     response.getWriter().write(JSON.toJSONString(Result.error("内容包含不当信息，请修改后重试")));
                     return false;
                 }
             }
         }
-        
+
         return true;
     }
 

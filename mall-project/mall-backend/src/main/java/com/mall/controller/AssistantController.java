@@ -87,6 +87,12 @@ public class AssistantController {
             @Override
             public void onError(Exception e) {
                 log.error("流式对话出错", e);
+                try {
+                    // 发送错误信息给前端
+                    emitter.send("data: " + e.getMessage() + "\n\n");
+                } catch (IOException ex) {
+                    log.error("发送错误信息失败", ex);
+                }
                 emitter.completeWithError(e);
             }
             

@@ -70,7 +70,8 @@ export const chatStreamPost = async (
   data: ChatRequest,
   onMessage: (chunk: string) => void,
   onDone: (relatedProducts?: Product[]) => void,
-  onError: (error: Error) => void
+  onError: (error: Error) => void,
+  abortController?: AbortController
 ) => {
   try {
     const token = localStorage.getItem('token')
@@ -83,7 +84,8 @@ export const chatStreamPost = async (
         'Authorization': token ? `Bearer ${token}` : '',
         'userId': userId
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      signal: abortController?.signal
     })
 
     if (!response.ok) {

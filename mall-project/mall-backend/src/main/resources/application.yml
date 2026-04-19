@@ -79,7 +79,7 @@ llm:
   # 通义千问配置（可选）
   qwen:
     api-key: sk-1a4df20be5cb44e0ab482e77f7b713fe
-    base-url: https://dashscope.aliyuncs.com/api
+    base-url: https://dashscope.aliyuncs.com/api/v1
   
   # 默认使用的大模型提供商：openai, qwen, wenxin, spark
   provider: qwen

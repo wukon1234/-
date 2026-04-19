@@ -133,7 +133,8 @@ const handleSend = async (message: string) => {
       await handleNormalChat(request)
     }
   } catch (error) {
-    ElMessage.error('发送失败，请重试')
+    const errorMessage = error instanceof Error ? error.message : '发送失败，请重试'
+    ElMessage.error(errorMessage)
     console.error('发送消息失败:', error)
     streaming.value = false
     streamingMessage.value = ''
@@ -188,7 +189,8 @@ const handleStreamChat = async (request: ChatRequest) => {
         streamingMessage.value = ''
         currentStreamAbortController.value = null
         throw error
-      }
+      },
+      abortController
     )
   } catch (error) {
     streaming.value = false
