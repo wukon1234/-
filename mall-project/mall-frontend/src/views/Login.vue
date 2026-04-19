@@ -63,21 +63,20 @@ const loginRules = reactive<FormRules>({
 
 const handleLogin = async () => {
   if (!loginFormRef.value) return
-  
+
   try {
     await loginFormRef.value.validate()
     loading.value = true
-    
+
     const res = await login(loginForm)
-    userStore.setToken(res.token)
-    // 后端返回的是直接的用户信息，不是包含在user对象中
+    userStore.setToken(res.data.token)
     userStore.setUserInfo({
-      id: res.userId,
-      username: res.username,
-      avatar: res.avatar
+      id: res.data.userId,
+      username: res.data.username,
+      avatar: res.data.avatar
     })
-    localStorage.setItem('userId', String(res.userId))
-    
+    localStorage.setItem('userId', String(res.data.userId))
+
     ElMessage.success('登录成功')
     router.push('/home')
   } catch (error: any) {

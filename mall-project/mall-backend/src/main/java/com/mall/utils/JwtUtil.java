@@ -3,14 +3,12 @@ package com.mall.utils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,16 +19,17 @@ import java.util.Map;
 @Component
 public class JwtUtil {
     
+    @Value("${jwt.secret}")
+    private String secret;
+
     @Value("${jwt.expiration:86400000}")
     private Long expiration;
-    
+
     private SecretKey secretKey;
-    
-    // 初始化方法中创建安全的密钥
+
     @PostConstruct
     public void init() {
-        // 使用Keys.secretKeyFor方法生成安全的密钥
-        this.secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+        this.secretKey = new javax.crypto.spec.SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
     }
     
     /**

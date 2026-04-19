@@ -65,7 +65,7 @@ logging:
 
 # JWT配置
 jwt:
-  secret: mall-secret-key-2024
+  secret: mall-secret-key-2024-secure-token-key
   expiration: 86400000  # 24小时
 
 # 大模型配置
