@@ -28,6 +28,22 @@ export interface Conversation {
   updateTime: string
 }
 
+export interface AssistantSettings {
+  id?: number
+  name: string
+  enabled: number
+  responseMode: string
+  timeout: number
+}
+
+export interface AssistantTemplate {
+  id: number
+  keyword: string
+  response: string
+  createTime?: string
+  updateTime?: string
+}
+
 /**
  * 发送消息（普通）
  */
@@ -179,4 +195,46 @@ export const getMessages = (sessionId: string) => {
  */
 export const deleteConversation = (sessionId: string) => {
   return request.delete(`/assistant/conversation/${sessionId}`)
+}
+
+/**
+ * 管理端：获取助手设置
+ */
+export const getAdminAssistantSettings = () => {
+  return request.get<AssistantSettings>('/admin/assistant/settings')
+}
+
+/**
+ * 管理端：保存助手设置
+ */
+export const updateAdminAssistantSettings = (data: AssistantSettings) => {
+  return request.put<AssistantSettings>('/admin/assistant/settings', data)
+}
+
+/**
+ * 管理端：获取模板列表
+ */
+export const getAdminAssistantTemplates = () => {
+  return request.get<AssistantTemplate[]>('/admin/assistant/templates')
+}
+
+/**
+ * 管理端：新增模板
+ */
+export const createAdminAssistantTemplate = (data: { keyword: string; response: string }) => {
+  return request.post<AssistantTemplate>('/admin/assistant/templates', data)
+}
+
+/**
+ * 管理端：更新模板
+ */
+export const updateAdminAssistantTemplate = (id: number, data: { keyword: string; response: string }) => {
+  return request.put<AssistantTemplate>(`/admin/assistant/templates/${id}`, data)
+}
+
+/**
+ * 管理端：删除模板
+ */
+export const deleteAdminAssistantTemplate = (id: number) => {
+  return request.delete(`/admin/assistant/templates/${id}`)
 }

@@ -8,8 +8,12 @@ import com.mall.dto.ConversationDTO;
 import com.mall.dto.MessageDTO;
 import com.mall.mapper.ConversationMapper;
 import com.mall.mapper.ConversationMessageMapper;
+import com.mall.mapper.AssistantSettingsMapper;
+import com.mall.mapper.AssistantTemplateMapper;
 import com.mall.entity.Conversation;
 import com.mall.entity.ConversationMessage;
+import com.mall.entity.AssistantSettings;
+import com.mall.entity.AssistantTemplate;
 import com.mall.service.assistant.AssistantService;
 import com.mall.service.assistant.LLMService;
 import com.mall.service.assistant.RAGService;
@@ -41,6 +45,12 @@ public class AssistantServiceImpl implements AssistantService {
     
     @Autowired
     private RAGService ragService;
+
+    @Autowired
+    private AssistantSettingsMapper assistantSettingsMapper;
+
+    @Autowired
+    private AssistantTemplateMapper assistantTemplateMapper;
     
     @Override
     public ChatResponse chat(Long userId, ChatRequest request) {
@@ -49,6 +59,18 @@ public class AssistantServiceImpl implements AssistantService {
         
         // 2. 保存用户消息
         saveMessage(conversation.getId(), 1, request.getMessage(), null);
+
+        // 2.1 按管理端配置处理（停用/模板回复）
+        String managedReply = resolveManagedReply(request.getMessage());
+        if (managedReply != null) {
+            Long messageId = saveMessage(conversation.getId(), 2, managedReply, null);
+            ChatResponse response = new ChatResponse();
+            response.setSessionId(conversation.getSessionId());
+            response.setMessage(managedReply);
+            response.setRelatedProducts(Collections.emptyList());
+            response.setMessageId(messageId);
+            return response;
+        }
         
         // 3. RAG检索相关商品
         List<com.mall.entity.Product> relatedProducts = ragService.searchProducts(request.getMessage(), 5);
@@ -87,6 +109,15 @@ public class AssistantServiceImpl implements AssistantService {
                 
                 // 2. 保存用户消息
                 saveMessage(conversation.getId(), 1, request.getMessage(), null);
+
+                // 2.1 按管理端配置处理（停用/模板回复）
+                String managedReply = resolveManagedReply(request.getMessage());
+                if (managedReply != null) {
+                    streamBySemanticUnits(managedReply, callback);
+                    saveMessage(conversation.getId(), 2, managedReply, null);
+                    callback.onComplete();
+                    return;
+                }
                 
                 // 3. RAG检索相关商品
                 List<com.mall.entity.Product> relatedProducts = ragService.searchProducts(request.getMessage(), 5);
@@ -204,6 +235,43 @@ public class AssistantServiceImpl implements AssistantService {
         int maxLen = 14;
         if (s.length() <= maxLen) return s;
         return s.substring(0, maxLen) + "...";
+    }
+
+    /**
+     * 根据管理端配置决定是否使用模板回复
+     * @return 非空表示直接返回该回复；空表示继续走智能回复链路
+     */
+    private String resolveManagedReply(String userMessage) {
+        AssistantSettings settings = assistantSettingsMapper.selectOne(
+                new LambdaQueryWrapper<AssistantSettings>()
+                        .orderByDesc(AssistantSettings::getId)
+                        .last("LIMIT 1")
+        );
+        if (settings != null && settings.getEnabled() != null && settings.getEnabled() == 0) {
+            return "当前智能助手已暂停服务，请稍后再试。";
+        }
+        if (settings == null || settings.getResponseMode() == null
+                || !"template".equalsIgnoreCase(settings.getResponseMode())) {
+            return null;
+        }
+
+        List<AssistantTemplate> templates = assistantTemplateMapper.selectList(
+                new LambdaQueryWrapper<AssistantTemplate>().orderByDesc(AssistantTemplate::getId)
+        );
+        if (templates == null || templates.isEmpty()) {
+            return null;
+        }
+
+        String input = userMessage == null ? "" : userMessage.trim();
+        for (AssistantTemplate template : templates) {
+            if (template.getKeyword() != null
+                    && !template.getKeyword().trim().isEmpty()
+                    && input.contains(template.getKeyword().trim())) {
+                return template.getResponse();
+            }
+        }
+        // 模板模式下未命中关键词时，自动回退智能回复链路
+        return null;
     }
     
     /**

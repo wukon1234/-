@@ -10,7 +10,11 @@
             <el-input v-model="assistantSettings.name" />
           </el-form-item>
           <el-form-item label="助手状态">
-            <el-switch v-model="assistantSettings.enabled" />
+            <el-switch
+              v-model="assistantSettings.enabled"
+              :active-value="1"
+              :inactive-value="0"
+            />
           </el-form-item>
           <el-form-item label="回复模式">
             <el-select v-model="assistantSettings.responseMode">
@@ -34,7 +38,7 @@
           <el-button type="primary" @click="addTemplate">添加模板</el-button>
         </div>
         
-        <el-table :data="templates" stripe style="width: 100%" border>
+        <el-table v-loading="loading" :data="templates" stripe style="width: 100%" border>
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="keyword" label="关键词" width="150" />
           <el-table-column prop="response" label="回复内容" min-width="300" />
@@ -81,53 +85,89 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { Edit, Delete } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import {
+  createAdminAssistantTemplate,
+  deleteAdminAssistantTemplate,
+  getAdminAssistantSettings,
+  getAdminAssistantTemplates,
+  updateAdminAssistantSettings,
+  updateAdminAssistantTemplate,
+  type AssistantTemplate
+} from '@/api/assistant'
 
 // 助手设置
 const assistantSettings = reactive({
   name: '商城智能助手',
-  enabled: true,
+  enabled: 1,
   responseMode: 'intelligent',
   timeout: 30
 })
 
 // 回复模板
-const templates = ref([
-  { id: 1, keyword: '您好', response: '您好！欢迎来到我们的商城，有什么可以帮助您的吗？' },
-  { id: 2, keyword: '订单', response: '您可以在"我的订单"页面查看您的订单状态。' },
-  { id: 3, keyword: '退款', response: '关于退款问题，请联系客服处理，客服电话：400-123-4567。' }
-])
+const templates = ref<AssistantTemplate[]>([])
+const loading = ref(false)
 
 // 模板对话框
 const templateDialogVisible = ref(false)
 const templateDialogTitle = ref('添加模板')
 const currentTemplate = reactive({
-  id: '',
+  id: 0,
   keyword: '',
   response: ''
 })
 
+const loadAssistantData = async () => {
+  loading.value = true
+  try {
+    const [settingsRes, templatesRes] = await Promise.all([
+      getAdminAssistantSettings(),
+      getAdminAssistantTemplates()
+    ])
+    Object.assign(assistantSettings, settingsRes.data)
+    templates.value = templatesRes.data || []
+  } catch (error) {
+    ElMessage.error('加载助手管理数据失败')
+    console.error('加载助手管理数据失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
 // 保存设置
-const saveSettings = () => {
-  console.log('保存助手设置', assistantSettings)
-  ElMessage.success('助手设置保存成功')
-  // 这里可以添加实际的保存逻辑
-  // 例如：assistantService.saveSettings(assistantSettings)
+const saveSettings = async () => {
+  if (!assistantSettings.name.trim()) {
+    ElMessage.warning('请输入助手名称')
+    return
+  }
+  loading.value = true
+  try {
+    await updateAdminAssistantSettings({
+      ...assistantSettings,
+      name: assistantSettings.name.trim()
+    })
+    ElMessage.success('助手设置保存成功')
+  } catch (error) {
+    ElMessage.error('助手设置保存失败')
+    console.error('助手设置保存失败:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
 // 添加模板
 const addTemplate = () => {
   templateDialogTitle.value = '添加模板'
-  currentTemplate.id = ''
+  currentTemplate.id = 0
   currentTemplate.keyword = ''
   currentTemplate.response = ''
   templateDialogVisible.value = true
 }
 
 // 编辑模板
-const editTemplate = (row: any) => {
+const editTemplate = (row: AssistantTemplate) => {
   templateDialogTitle.value = '编辑模板'
   currentTemplate.id = row.id
   currentTemplate.keyword = row.keyword
@@ -136,40 +176,59 @@ const editTemplate = (row: any) => {
 }
 
 // 保存模板
-const saveTemplate = () => {
-  console.log('保存模板', currentTemplate)
+const saveTemplate = async () => {
+  const keyword = currentTemplate.keyword.trim()
+  const response = currentTemplate.response.trim()
+  if (!keyword || !response) {
+    ElMessage.warning('请完整填写关键词和回复内容')
+    return
+  }
+
+  loading.value = true
   if (currentTemplate.id) {
-    // 编辑现有模板
-    const index = templates.value.findIndex(t => t.id === currentTemplate.id)
-    if (index !== -1) {
-      templates.value[index] = { ...currentTemplate }
+    try {
+      await updateAdminAssistantTemplate(currentTemplate.id, { keyword, response })
       ElMessage.success('模板编辑成功')
+      await loadAssistantData()
+    } catch (error) {
+      ElMessage.error('模板编辑失败')
+      console.error('模板编辑失败:', error)
+    } finally {
+      loading.value = false
     }
   } else {
-    // 添加新模板
-    const newTemplate = {
-      id: Date.now(),
-      keyword: currentTemplate.keyword,
-      response: currentTemplate.response
+    try {
+      await createAdminAssistantTemplate({ keyword, response })
+      ElMessage.success('模板添加成功')
+      await loadAssistantData()
+    } catch (error) {
+      ElMessage.error('模板添加失败')
+      console.error('模板添加失败:', error)
+    } finally {
+      loading.value = false
     }
-    templates.value.push(newTemplate)
-    ElMessage.success('模板添加成功')
   }
   templateDialogVisible.value = false
-  // 这里可以添加实际的保存逻辑
-  // 例如：assistantService.saveTemplate(currentTemplate)
 }
 
 // 删除模板
-const deleteTemplate = (id: number) => {
-  const index = templates.value.findIndex(t => t.id === id)
-  if (index !== -1) {
-    templates.value.splice(index, 1)
+const deleteTemplate = async (id: number) => {
+  loading.value = true
+  try {
+    await deleteAdminAssistantTemplate(id)
     ElMessage.success('模板删除成功')
+    await loadAssistantData()
+  } catch (error) {
+    ElMessage.error('模板删除失败')
+    console.error('模板删除失败:', error)
+  } finally {
+    loading.value = false
   }
-  // 这里可以添加实际的删除逻辑
-  // 例如：assistantService.deleteTemplate(id)
 }
+
+onMounted(() => {
+  loadAssistantData()
+})
 </script>
 
 <style scoped lang="scss">

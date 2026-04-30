@@ -126,6 +126,36 @@ CREATE TABLE `conversation_message` (
   INDEX `idx_conversation_id` (`conversation_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='对话消息表';
 
+-- 9. 智能助手设置表（管理端）
+CREATE TABLE `assistant_settings` (
+  `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+  `name` VARCHAR(100) NOT NULL COMMENT '助手名称',
+  `enabled` TINYINT DEFAULT 1 COMMENT '状态：1-启用 0-停用',
+  `response_mode` VARCHAR(30) DEFAULT 'intelligent' COMMENT '回复模式：intelligent/template',
+  `timeout` INT DEFAULT 30 COMMENT '回复超时时间（秒）',
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能助手设置表';
+
+-- 10. 智能助手回复模板表（管理端）
+CREATE TABLE `assistant_template` (
+  `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+  `keyword` VARCHAR(100) NOT NULL COMMENT '关键词',
+  `response` TEXT NOT NULL COMMENT '回复内容',
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='智能助手回复模板表';
+
+-- 初始化智能助手管理配置
+INSERT INTO `assistant_settings` (`name`, `enabled`, `response_mode`, `timeout`)
+VALUES ('商城智能助手', 1, 'intelligent', 30);
+
+-- 初始化智能助手模板
+INSERT INTO `assistant_template` (`keyword`, `response`) VALUES
+('您好', '您好！欢迎来到我们的商城，有什么可以帮您？'),
+('订单', '您可以在“我的订单”页面查看订单状态与物流进度。'),
+('退款', '关于退款问题，您可在订单详情页申请售后，我们会尽快处理。');
+
 -- 插入测试数据
 
 -- 插入分类数据
