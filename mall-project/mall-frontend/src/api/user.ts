@@ -19,6 +19,25 @@ export interface RegisterRequest {
   phone?: string
 }
 
+export interface User {
+  id: number
+  username: string
+  email?: string
+  phone?: string
+  avatar?: string
+  status: number
+  role: number
+  createTime: string
+}
+
+export interface UpdateUserRequest {
+  id: number
+  email?: string
+  phone?: string
+  role?: number
+  status?: number
+}
+
 /**
  * 用户登录
  */
@@ -55,5 +74,39 @@ export const updatePassword = (data: {
  */
 export const adminLogin = (data: LoginRequest) => {
   return request.post<LoginResponse>('/user/admin/login', data)
+}
+
+/**
+ * 获取用户列表
+ */
+export const getUserList = (params: {
+  keyword?: string
+  status?: string
+  role?: string
+  page?: number
+  pageSize?: number
+}) => {
+  return request.get<User[]>('/admin/users', { params })
+}
+
+/**
+ * 更新用户信息
+ */
+export const updateUser = (data: UpdateUserRequest) => {
+  return request.put(`/admin/users/${data.id}`, data)
+}
+
+/**
+ * 更新用户状态
+ */
+export const updateUserStatus = (id: number, status: number) => {
+  return request.put(`/admin/users/${id}/status`, null, { params: { status } })
+}
+
+/**
+ * 更新用户角色
+ */
+export const updateUserRole = (id: number, role: number) => {
+  return request.put(`/admin/users/${id}/role`, null, { params: { role } })
 }
 

@@ -1,5 +1,6 @@
 package com.mall.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mall.common.Result;
 import com.mall.dto.LoginRequest;
 import com.mall.dto.LoginResponse;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -76,9 +78,29 @@ public class AdminController {
     @GetMapping("/users")
     public Result<List<User>> getAllUsers(
             @RequestParam(defaultValue = "1") Integer page,
-            @RequestParam(defaultValue = "10") Integer size) {
-        // 这里可以添加获取所有用户的逻辑
-        return Result.success(null);
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String role) {
+        List<User> userList = userService.getUserList(page, size);
+        // 可以根据keyword、status、role进行过滤（这里暂不实现复杂过滤）
+        return Result.success(userList);
+    }
+    
+    /**
+     * 更新用户信息
+     */
+    @PutMapping("/users/{id}")
+    public Result<?> updateUser(@PathVariable Long id, @RequestBody User user) {
+        User existingUser = userService.getById(id);
+        if (existingUser == null) {
+            return Result.error("用户不存在");
+        }
+        user.setId(id);
+        user.setUpdateTime(LocalDateTime.now());
+        userService.updateById(user);
+        log.info("更新用户信息成功: id={}", id);
+        return Result.success("用户信息更新成功");
     }
     
     /**
@@ -86,8 +108,12 @@ public class AdminController {
      */
     @PutMapping("/users/{id}/status")
     public Result<?> updateUserStatus(@PathVariable Long id, @RequestParam Integer status) {
-        // 这里可以添加更新用户状态的逻辑
-        return Result.success("用户状态更新成功");
+        boolean result = userService.updateUserStatus(id, status);
+        if (result) {
+            return Result.success("用户状态更新成功");
+        } else {
+            return Result.error("用户状态更新失败");
+        }
     }
     
     /**
@@ -95,9 +121,12 @@ public class AdminController {
      */
     @PutMapping("/users/{id}/role")
     public Result<?> updateUserRole(@PathVariable Long id, @RequestParam Integer role) {
-        // 这里可以添加更新用户角色的逻辑
-        return Result.success("用户角色更新成功");
-
+        boolean result = userService.updateUserRole(id, role);
+        if (result) {
+            return Result.success("用户角色更新成功");
+        } else {
+            return Result.error("用户角色更新失败");
+        }
     }
 
     /**
