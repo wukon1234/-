@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 商品控制器
@@ -141,13 +143,34 @@ public class ProductController {
      * 管理员获取商品列表（包含所有状态）
      */
     @GetMapping("/admin/list")
-    public Result<List<Product>> getAdminProductList(
+    public Result<Map<String, Object>> getAdminProductList(
             @RequestParam(defaultValue = "1") Integer page,
-            @RequestParam(defaultValue = "10") Integer size) {
-        List<Product> productList = productService.list(
-            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Product>()
-                .orderByDesc(Product::getCreateTime)
-        );
-        return Result.success(productList);
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Integer status) {
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Product> wrapper =
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Product>()
+                        .orderByDesc(Product::getCreateTime);
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String kw = keyword.trim();
+            wrapper.and(w -> w.like(Product::getName, kw).or().like(Product::getDescription, kw));
+        }
+        if (categoryId != null) {
+            wrapper.eq(Product::getCategoryId, categoryId);
+        }
+        if (status != null) {
+            wrapper.eq(Product::getStatus, status);
+        }
+
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Product> pageParam =
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, size);
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Product> resultPage = productService.page(pageParam, wrapper);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", resultPage.getRecords());
+        result.put("total", resultPage.getTotal());
+        return Result.success(result);
     }
 }

@@ -68,8 +68,17 @@ export const updateProductStatus = (id: number, status: number) => {
   return request.put<boolean>(`/products/${id}/status`, null, { params: { status } })
 }
 
-export const getAdminProductList = (page = 1, size = 10) => {
-  return request.get<Product[]>('/products/admin/list', { params: { page, size } })
+export const getAdminProductList = (params: {
+  page?: number
+  size?: number
+  keyword?: string
+  categoryId?: number
+  status?: number
+}) => {
+  return request.get<{
+    list: Product[]
+    total: number
+  }>('/products/admin/list', { params })
 }
 
 

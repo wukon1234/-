@@ -26,10 +26,10 @@
           style="width: 150px; margin-right: 10px"
           clearable
         >
-          <el-option label="手机" value="1" />
-          <el-option label="电脑" value="2" />
-          <el-option label="服装" value="3" />
-          <el-option label="家居" value="4" />
+          <el-option label="手机" :value="4" />
+          <el-option label="电脑" :value="5" />
+          <el-option label="男装" :value="6" />
+          <el-option label="女装" :value="7" />
         </el-select>
         
         <el-select
@@ -38,8 +38,8 @@
           style="width: 150px; margin-right: 10px"
           clearable
         >
-          <el-option label="上架" value="1" />
-          <el-option label="下架" value="0" />
+          <el-option label="上架" :value="1" />
+          <el-option label="下架" :value="0" />
         </el-select>
         
         <el-button type="primary" @click="handleSearch">搜索</el-button>
@@ -112,8 +112,8 @@ const router = useRouter()
 // 搜索表单
 const searchForm = reactive({
   keyword: '',
-  category: '',
-  status: ''
+  category: undefined as number | undefined,
+  status: undefined as number | undefined
 })
 
 // 商品列表数据
@@ -139,12 +139,18 @@ const formatPrice = (row: any, column: any) => {
 const fetchProductList = async () => {
   loading.value = true
   try {
-    const response = await getAdminProductList(pagination.currentPage, pagination.pageSize)
-    productList.value = response.data.map((item: any) => ({
+    const response = await getAdminProductList({
+      page: pagination.currentPage,
+      size: pagination.pageSize,
+      keyword: searchForm.keyword.trim() || undefined,
+      categoryId: searchForm.category,
+      status: searchForm.status
+    })
+    productList.value = (response.data.list || []).map((item: any) => ({
       ...item,
       categoryName: getCategoryName(item.categoryId)
     }))
-    pagination.total = productList.value.length
+    pagination.total = response.data.total || 0
   } catch (error) {
     ElMessage.error('获取商品列表失败')
     console.error('获取商品列表失败:', error)
@@ -156,10 +162,10 @@ const fetchProductList = async () => {
 // 根据分类ID获取分类名称
 const getCategoryName = (categoryId: number) => {
   const categoryMap: Record<number, string> = {
-    1: '手机',
-    2: '电脑',
-    3: '服装',
-    4: '家居'
+    4: '手机',
+    5: '电脑',
+    6: '男装',
+    7: '女装'
   }
   return categoryMap[categoryId] || '其他'
 }
@@ -176,8 +182,8 @@ const handleSearch = () => {
 // 重置搜索
 const resetSearch = () => {
   searchForm.keyword = ''
-  searchForm.category = ''
-  searchForm.status = ''
+  searchForm.category = undefined
+  searchForm.status = undefined
   handleSearch()
 }
 

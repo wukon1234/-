@@ -23,8 +23,8 @@
           style="width: 150px; margin-right: 10px"
           clearable
         >
-          <el-option label="启用" value="1" />
-          <el-option label="禁用" value="0" />
+          <el-option label="启用" :value="1" />
+          <el-option label="禁用" :value="0" />
         </el-select>
         
         <el-select
@@ -33,8 +33,8 @@
           style="width: 150px; margin-right: 10px"
           clearable
         >
-          <el-option label="普通用户" value="1" />
-          <el-option label="管理员" value="2" />
+          <el-option label="普通用户" :value="1" />
+          <el-option label="管理员" :value="2" />
         </el-select>
         
         <el-button type="primary" @click="handleSearch">搜索</el-button>
@@ -57,8 +57,8 @@
           <template #default="scope">
             <el-switch
               v-model="scope.row.status"
-              active-value="1"
-              inactive-value="0"
+              :active-value="1"
+              :inactive-value="0"
               @change="handleStatusChange(scope.row)"
             />
           </template>
@@ -107,15 +107,15 @@
         </el-form-item>
         <el-form-item label="角色">
           <el-select v-model="editForm.role">
-            <el-option label="普通用户" value="1" />
-            <el-option label="管理员" value="2" />
+            <el-option label="普通用户" :value="1" />
+            <el-option label="管理员" :value="2" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
           <el-switch
             v-model="editForm.status"
-            active-value="1"
-            inactive-value="0"
+            :active-value="1"
+            :inactive-value="0"
           />
         </el-form-item>
       </el-form>
@@ -138,8 +138,8 @@ import { getUserList, updateUser, updateUserStatus, updateUserRole } from '@/api
 // 搜索表单
 const searchForm = reactive({
   keyword: '',
-  status: '',
-  role: ''
+  status: undefined as number | undefined,
+  role: undefined as number | undefined
 })
 
 // 分页信息
@@ -152,12 +152,12 @@ const pagination = reactive({
 // 编辑对话框
 const editDialogVisible = ref(false)
 const editForm = reactive({
-  id: '',
+  id: 0,
   username: '',
   email: '',
   phone: '',
-  role: '',
-  status: ''
+  role: 1,
+  status: 1
 })
 
 // 加载状态
@@ -196,8 +196,8 @@ const handleSearch = () => {
 // 重置搜索
 const resetSearch = () => {
   searchForm.keyword = ''
-  searchForm.status = ''
-  searchForm.role = ''
+  searchForm.status = undefined
+  searchForm.role = undefined
   handleSearch()
 }
 
