@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -101,8 +102,12 @@ public class AssistantServiceImpl implements AssistantService {
                 llmService.chatStream(prompt, history, new LLMService.StreamCallback() {
                     @Override
                     public void onMessage(String chunk) {
+                        if (chunk == null || chunk.isEmpty()) {
+                            return;
+                        }
                         fullResponse.append(chunk);
-                        callback.onMessage(chunk);
+                        // 语义单元推送：中文按单字、英文按整词，避免把英文词拆碎
+                        streamBySemanticUnits(chunk, callback);
                     }
                     
                     @Override
@@ -232,7 +237,8 @@ public class AssistantServiceImpl implements AssistantService {
               .append("1）使用简体中文，语气友好、专业，分点或分段回答，提高可读性；\n")
               .append("2）当推荐上方列表中的商品时，请直接引用商品名称并结合价格做具体推荐理由；\n")
               .append("3）涉及下单/支付/配送/售后等流程时，请按照常见电商流程清晰分步骤说明；\n")
-              .append("4）如果信息不确定，不要胡乱编造，可以给出“当前系统暂不支持自动查询，请联系客服或在订单页查看”等安全回答。\n");
+              .append("4）如果信息不确定，不要胡乱编造，可以给出“当前系统暂不支持自动查询，请联系客服或在订单页查看”等安全回答；\n")
+              .append("5）请按以下结构输出：先给“思路：”一段简短分析（2-4句），再给“回答：”给出完整可执行建议。\n");
         
         return prompt.toString();
     }
@@ -272,6 +278,47 @@ public class AssistantServiceImpl implements AssistantService {
             }
         }
         return ids;
+    }
+
+    private void streamBySemanticUnits(String text, StreamCallback callback) {
+        StringBuilder asciiWord = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (isAsciiWordChar(c)) {
+                asciiWord.append(c);
+                continue;
+            }
+            flushAsciiWord(asciiWord, callback);
+            callback.onMessage(String.valueOf(c));
+            sleepRandomTypingDelay();
+        }
+        flushAsciiWord(asciiWord, callback);
+    }
+
+    private void flushAsciiWord(StringBuilder asciiWord, StreamCallback callback) {
+        if (asciiWord.length() == 0) {
+            return;
+        }
+        callback.onMessage(asciiWord.toString());
+        asciiWord.setLength(0);
+        sleepRandomTypingDelay();
+    }
+
+    private boolean isAsciiWordChar(char c) {
+        return (c >= 'a' && c <= 'z')
+                || (c >= 'A' && c <= 'Z')
+                || (c >= '0' && c <= '9')
+                || c == '_'
+                || c == '-';
+    }
+
+    private void sleepRandomTypingDelay() {
+        try {
+            Thread.sleep(ThreadLocalRandom.current().nextInt(60, 101));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("逐字流式输出被中断");
+        }
     }
     
     @Override

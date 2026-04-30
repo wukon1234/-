@@ -115,9 +115,10 @@ export const chatStreamPost = async (
       buffer = lines.pop() || ''
 
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const messageData = line.slice(6).trim()
-          if (messageData === '[DONE]') {
+        if (line.startsWith('data:')) {
+          // 不做trim，避免把模型输出中的空格吃掉
+          const messageData = line.slice(5).replace(/^\s/, '')
+          if (messageData.trim() === '[DONE]') {
             onDone(relatedProducts)
             return
           }

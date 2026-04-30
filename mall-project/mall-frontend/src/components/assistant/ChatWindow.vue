@@ -9,11 +9,11 @@
       />
     </div>
     <div class="chat-messages" ref="messagesContainer">
-      <div v-if="messages.length === 0" class="empty-state">
+      <div v-if="displayMessages.length === 0" class="empty-state">
         <el-empty description="开始对话吧~" />
       </div>
       <div
-        v-for="msg in messages"
+        v-for="msg in displayMessages"
         :key="msg.id"
         :class="['message-item', msg.role === 'user' ? 'user-message' : 'assistant-message']"
       >
@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue'
+import { computed, ref, nextTick, watch } from 'vue'
 import { User, ChatDotRound, Loading } from '@element-plus/icons-vue'
 import MessageInput from './MessageInput.vue'
 import ProductRecommendation from './ProductRecommendation.vue'
@@ -90,6 +90,10 @@ const useStream = ref(true) // 默认使用流式对话
 const streaming = ref(false)
 const streamingMessage = ref('')
 const currentStreamAbortController = ref<AbortController | null>(null)
+const optimisticMessages = ref<any[]>([])
+let tempMessageId = 0
+
+const displayMessages = computed(() => [...(props.messages || []), ...optimisticMessages.value])
 
 // 滚动到底部
 const scrollToBottom = () => {
@@ -102,6 +106,9 @@ const scrollToBottom = () => {
 
 // 监听消息变化，自动滚动
 watch(() => props.messages, () => {
+  if (optimisticMessages.value.length > 0) {
+    optimisticMessages.value = []
+  }
   scrollToBottom()
 }, { deep: true })
 
@@ -123,6 +130,15 @@ const handleSend = async (message: string) => {
     sessionId: props.sessionId || undefined,
     message: message.trim()
   }
+
+  optimisticMessages.value.push({
+    id: `tmp-user-${Date.now()}-${tempMessageId++}`,
+    role: 'user',
+    content: request.message,
+    createTime: new Date().toISOString(),
+    relatedProducts: []
+  })
+  scrollToBottom()
 
   try {
     if (useStream.value) {

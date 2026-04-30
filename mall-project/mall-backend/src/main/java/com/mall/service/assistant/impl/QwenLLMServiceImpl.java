@@ -174,11 +174,19 @@ public class QwenLLMServiceImpl implements LLMService {
                         StringBuilder fullResponse = new StringBuilder();
                         
                         while ((line = reader.readLine()) != null) {
+                            line = line.trim();
                             if (line.isEmpty()) {
                                 continue;
                             }
-                            
-                            // 处理通义千问的流式响应格式
+
+                            if (line.startsWith("data:")) {
+                                line = line.substring(5).trim();
+                            }
+                            if ("[DONE]".equals(line)) {
+                                break;
+                            }
+
+                            // 处理通义千问流式响应（兼容SSE data行）
                             try {
                                 Map<String, Object> result = JSON.parseObject(line, Map.class);
                                 Map<String, Object> output = (Map<String, Object>) result.get("output");
