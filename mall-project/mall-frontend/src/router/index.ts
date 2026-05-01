@@ -149,12 +149,18 @@ router.beforeEach((to, _from, next) => {
   // 设置页面标题
   document.title = `${to.meta.title || '商城智能助手系统'} - 商城智能助手系统`
   
-  const token = localStorage.getItem('token')
+  const rawToken = localStorage.getItem('token')
+  const token = rawToken && rawToken !== 'null' && rawToken !== 'undefined' ? rawToken : ''
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth === true)
   
   // 如果需要认证但没有token，重定向到登录页面
   if (requiresAuth && !token) {
+    if (to.path.startsWith('/admin')) {
+      next('/admin/login')
+      return
+    }
     next('/login')
+    return
   } else {
     next()
   }

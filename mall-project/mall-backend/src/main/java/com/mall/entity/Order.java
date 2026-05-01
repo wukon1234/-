@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("`order`")
+@TableName("orders")
 public class Order extends BaseEntity {
     
     private String orderNo;

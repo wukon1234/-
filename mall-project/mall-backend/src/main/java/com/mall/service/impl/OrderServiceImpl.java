@@ -217,7 +217,7 @@ public class OrderServiceImpl implements OrderService {
             List<OrderItemDTO> itemDTOs = orderItems.stream().map(item -> {
                 OrderItemDTO itemDTO = new OrderItemDTO();
                 BeanUtils.copyProperties(item, itemDTO);
-                itemDTO.setSubtotal(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+                itemDTO.setSubtotal(calculateSubtotal(item.getPrice(), item.getQuantity()));
                 return itemDTO;
             }).collect(Collectors.toList());
             
@@ -277,7 +277,7 @@ public class OrderServiceImpl implements OrderService {
         List<OrderItemDTO> itemDTOs = orderItems.stream().map(item -> {
             OrderItemDTO itemDTO = new OrderItemDTO();
             BeanUtils.copyProperties(item, itemDTO);
-            itemDTO.setSubtotal(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+            itemDTO.setSubtotal(calculateSubtotal(item.getPrice(), item.getQuantity()));
             return itemDTO;
         }).collect(Collectors.toList());
         
@@ -287,6 +287,12 @@ public class OrderServiceImpl implements OrderService {
 
     private String nullSafe(String s) {
         return s == null ? "" : s;
+    }
+
+    private BigDecimal calculateSubtotal(BigDecimal price, Integer quantity) {
+        BigDecimal safePrice = price == null ? BigDecimal.ZERO : price;
+        int safeQuantity = quantity == null ? 0 : quantity;
+        return safePrice.multiply(BigDecimal.valueOf(safeQuantity));
     }
     
     @Override

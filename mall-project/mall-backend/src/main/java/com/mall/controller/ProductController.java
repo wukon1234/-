@@ -225,7 +225,7 @@ public class ProductController {
         try {
             file.transferTo(target);
             Map<String, String> result = new HashMap<>();
-            result.put("url", "/api/products/image/" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
+            result.put("url", "/api/products/image/" + URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()));
             result.put("fileName", fileName);
             return Result.success(result);
         } catch (IOException e) {
