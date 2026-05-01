@@ -81,8 +81,8 @@ export const adminLogin = (data: LoginRequest) => {
  */
 export const getUserList = (params: {
   keyword?: string
-  status?: string
-  role?: string
+  status?: number
+  role?: number
   page?: number
   pageSize?: number
 }) => {

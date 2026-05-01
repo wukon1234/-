@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { useUserStore } from '@/store/user'
 
 const routes: Array<RouteRecordRaw> = [
   // 前端用户路由
@@ -146,7 +145,7 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   // 设置页面标题
   document.title = `${to.meta.title || '商城智能助手系统'} - 商城智能助手系统`
   

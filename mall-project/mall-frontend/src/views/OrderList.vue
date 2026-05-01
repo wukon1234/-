@@ -126,7 +126,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getOrderList,
@@ -136,8 +135,6 @@ import {
   orderStatusMap,
   type Order
 } from '@/api/order'
-
-const router = useRouter()
 
 const activeStatus = ref<number | undefined>(undefined)
 const orderList = ref<Order[]>([])

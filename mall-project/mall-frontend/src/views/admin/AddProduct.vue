@@ -135,7 +135,7 @@ const productRules = reactive({
   price: [
     { required: true, message: '请输入商品价格', trigger: 'blur' },
     {
-      validator: (rule, value, callback) => {
+      validator: (_rule: unknown, value: number, callback: (error?: Error) => void) => {
         if (typeof value === 'number' && value > 0) {
           callback()
         } else {
@@ -148,7 +148,7 @@ const productRules = reactive({
   stock: [
     { required: true, message: '请输入商品库存', trigger: 'blur' },
     {
-      validator: (rule, value, callback) => {
+      validator: (_rule: unknown, value: number, callback: (error?: Error) => void) => {
         if (typeof value === 'number' && value >= 0) {
           callback()
         } else {
@@ -161,7 +161,7 @@ const productRules = reactive({
   description: [
     { required: true, message: '请输入商品描述', trigger: 'blur' },
     {
-      validator: (rule, value, callback) => {
+      validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
         if (value && value.length >= 10) {
           callback()
         } else {
@@ -191,12 +191,12 @@ const beforeUpload = (file: File) => {
 }
 
 // 处理文件超出数量限制
-const handleExceed = (files: File[], fileList: UploadFile[]) => {
+const handleExceed = (_files: File[], _fileList: UploadFile[]) => {
   ElMessage.error('仅支持上传 1 张主图')
 }
 
 // 处理文件移除
-const handleRemove = (file: UploadFile, fileList: UploadFile[]) => {
+const handleRemove = (_file: UploadFile, _fileList: UploadFile[]) => {
   productForm.imageUrl = ''
 }
 
@@ -212,7 +212,7 @@ const handleUploadRequest = async (options: UploadRequestOptions) => {
     options.onSuccess?.(res.data as any)
     ElMessage.success('图片上传成功')
   } catch (error) {
-    options.onError?.(error as Error)
+    options.onError?.(error as any)
     ElMessage.error('图片上传失败')
   }
 }
@@ -305,7 +305,7 @@ const handleAIGenerate = async () => {
     // 准备生成参数，使用表单中已有的信息
     const generateParams = {
       productName: productForm.name,
-      keywords: getCategoryName(productForm.categoryId) || '高品质,热销',
+      keywords: getCategoryName(productForm.categoryId ?? '') || '高品质,热销',
       targetAudience: '所有用户'
     }
 
@@ -360,15 +360,15 @@ const handleAIGenerate = async () => {
 }
 
 // 根据分类ID获取分类名称
-const getCategoryName = (categoryId: string | number) => {
-  const categoryMap: Record<string | number, string> = {
+const getCategoryName = (categoryId: string | number | undefined) => {
+  const categoryMap: Record<string, string> = {
     1: '手机,数码,科技',
     2: '电脑,办公,科技',
     3: '服装,时尚,潮流',
     4: '家居,生活,舒适',
     5: '电子产品,数码,科技'
   }
-  return categoryMap[categoryId] || ''
+  return categoryMap[String(categoryId ?? '')] || ''
 }
 
 onMounted(() => {

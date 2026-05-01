@@ -93,11 +93,12 @@ import { getDefaultAddress } from '@/api/address'
 
 const router = useRouter()
 
-const cartList = ref<CartItem[]>([])
+type CartItemWithSelected = CartItem & { selected: boolean }
+const cartList = ref<CartItemWithSelected[]>([])
 const selectAll = ref(false)
 
 // 为每个购物车项添加selected属性
-const initCartList = (items: CartItem[]) => {
+const initCartList = (items: CartItem[]): CartItemWithSelected[] => {
   return items.map(item => ({
     ...item,
     selected: false
@@ -132,12 +133,12 @@ const handleSelectAll = (checked: boolean) => {
 }
 
 // 单个商品选择
-const handleItemSelect = (item: CartItem) => {
-  selectAll.value = cartList.value.every(item => item.selected)
+const handleItemSelect = (_item: CartItemWithSelected) => {
+  selectAll.value = cartList.value.every(cartItem => cartItem.selected)
 }
 
 // 更新商品数量
-const handleQuantityChange = async (item: CartItem) => {
+const handleQuantityChange = async (item: CartItemWithSelected) => {
   try {
     await updateCartQuantity(item.id, { quantity: item.quantity })
     // 更新小计
@@ -151,7 +152,7 @@ const handleQuantityChange = async (item: CartItem) => {
 }
 
 // 删除商品
-const handleDelete = async (item: CartItem) => {
+const handleDelete = async (item: CartItemWithSelected) => {
   try {
     await ElMessageBox.confirm('确定要删除该商品吗？', '提示', {
       confirmButtonText: '确定',

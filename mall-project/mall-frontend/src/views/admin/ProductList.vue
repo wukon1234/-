@@ -104,7 +104,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Search, Edit, Delete } from '@element-plus/icons-vue'
-import { ElMessage, ElLoading } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { getAdminProductList, deleteProduct as deleteProductApi, updateProductStatus } from '@/api/product'
 
 const router = useRouter()
@@ -131,7 +131,7 @@ const loading = ref(false)
 const deleteLoading = ref(false)
 
 // 格式化价格
-const formatPrice = (row: any, column: any) => {
+const formatPrice = (row: any, _column: any) => {
   return `¥${row.price}`
 }
 
@@ -176,7 +176,6 @@ const handleSearch = () => {
   pagination.currentPage = 1
   // 重新获取商品列表
   fetchProductList()
-  // 这里可以根据需要添加搜索逻辑
 }
 
 // 重置搜索

@@ -69,7 +69,7 @@ export const chatStream = (data: ChatRequest, onMessage: (chunk: string) => void
     }
   })
   
-  eventSource.addEventListener('error', (error) => {
+  eventSource.addEventListener('error', (_error) => {
     eventSource.close()
     onError(new Error('流式对话连接错误'))
   })

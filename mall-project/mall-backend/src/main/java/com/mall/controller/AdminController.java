@@ -373,13 +373,14 @@ public class AdminController {
             List<User> users = userMapper.selectList(new LambdaQueryWrapper<User>().in(User::getId, userIdsInPage));
             userNameMap = users.stream().collect(Collectors.toMap(User::getId, User::getUsername));
         }
+        final Map<Long, String> finalUserNameMap = userNameMap;
 
         List<Map<String, Object>> rows = orderPage.getRecords().stream().map(order -> {
             Map<String, Object> row = new HashMap<>();
             row.put("id", order.getId());
             row.put("orderNo", order.getOrderNo());
             row.put("userId", order.getUserId());
-            row.put("userName", userNameMap.getOrDefault(order.getUserId(), "未知用户"));
+            row.put("userName", finalUserNameMap.getOrDefault(order.getUserId(), "未知用户"));
             row.put("totalAmount", order.getTotalAmount());
             row.put("status", order.getStatus());
             row.put("createTime", order.getCreateTime());

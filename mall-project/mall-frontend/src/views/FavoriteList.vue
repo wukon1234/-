@@ -39,10 +39,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { getFavoriteList, removeFavorite as apiRemoveFavorite } from '../api/favorite';
 
-const router = useRouter();
 const favorites = ref<any[]>([]);
 const page = ref(1);
 const pageSize = ref(10);

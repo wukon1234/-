@@ -164,7 +164,7 @@ const editForm = reactive({
 const loading = ref(false)
 
 // 用户列表数据
-const userList = ref([])
+const userList = ref<any[]>([])
 
 // 初始化加载用户列表
 const loadUserList = async () => {

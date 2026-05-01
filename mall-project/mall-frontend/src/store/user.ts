@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { getUserInfo } from '@/api/user'
 
 export interface UserInfo {

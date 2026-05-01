@@ -67,7 +67,7 @@ import { computed, ref, nextTick, watch } from 'vue'
 import { User, ChatDotRound, Loading } from '@element-plus/icons-vue'
 import MessageInput from './MessageInput.vue'
 import ProductRecommendation from './ProductRecommendation.vue'
-import { chat, chatStreamPost, getMessages, type ChatRequest, type ChatResponse } from '@/api/assistant'
+import { chat, chatStreamPost, type ChatRequest } from '@/api/assistant'
 import { ElMessage } from 'element-plus'
 
 interface Props {
@@ -192,7 +192,7 @@ const handleStreamChat = async (request: ChatRequest) => {
         streamingMessage.value += chunk
         scrollToBottom()
       },
-      (relatedProducts) => {
+      (_relatedProducts) => {
         if (abortController.signal.aborted) return
         streaming.value = false
         streamingMessage.value = ''

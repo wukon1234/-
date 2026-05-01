@@ -84,7 +84,7 @@ const userStore = useUserStore()
 
 const activeMenu = computed(() => route.path)
 
-const handleMenuSelect = (key: string, keyPath: string[]) => {
+const handleMenuSelect = (key: string, _keyPath: string[]) => {
   // 确保key是字符串类型的路由路径
   if (typeof key === 'string') {
     if (key.startsWith('/')) {

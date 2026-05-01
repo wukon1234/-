@@ -72,7 +72,7 @@ const registerRules = reactive<FormRules>({
   confirmPassword: [
     { required: true, message: '请再次输入密码', trigger: 'blur' },
     {
-      validator: (rule, value, callback) => {
+      validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
         if (value !== registerForm.password) {
           callback(new Error('两次输入密码不一致'))
         } else {
@@ -99,8 +99,7 @@ const handleRegister = async () => {
     await register({
       username: registerForm.username,
       password: registerForm.password,
-      email: registerForm.email,
-      phone: registerForm.phone
+      email: registerForm.email
     })
     ElMessage.success('注册成功，请登录')
     router.push('/login')
