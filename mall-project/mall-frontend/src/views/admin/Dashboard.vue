@@ -11,8 +11,8 @@
             </div>
             <div class="card-info">
               <div class="card-title">商品总数</div>
-              <div class="card-value">128</div>
-              <div class="card-desc">+20 本月新增</div>
+              <div class="card-value">{{ dashboard.productTotal }}</div>
+              <div class="card-desc">+{{ dashboard.monthNewProducts }} 本月新增</div>
             </div>
           </div>
         </el-card>
@@ -26,8 +26,8 @@
             </div>
             <div class="card-info">
               <div class="card-title">订单总数</div>
-              <div class="card-value">512</div>
-              <div class="card-desc">+15 今日新增</div>
+              <div class="card-value">{{ dashboard.orderTotal }}</div>
+              <div class="card-desc">+{{ dashboard.todayNewOrders }} 今日新增</div>
             </div>
           </div>
         </el-card>
@@ -41,8 +41,8 @@
             </div>
             <div class="card-info">
               <div class="card-title">用户总数</div>
-              <div class="card-value">1024</div>
-              <div class="card-desc">+50 本月新增</div>
+              <div class="card-value">{{ dashboard.userTotal }}</div>
+              <div class="card-desc">+{{ dashboard.monthNewUsers }} 本月新增</div>
             </div>
           </div>
         </el-card>
@@ -56,8 +56,8 @@
             </div>
             <div class="card-info">
               <div class="card-title">本月销售额</div>
-              <div class="card-value">¥25,600</div>
-              <div class="card-desc">+12% 较上月</div>
+              <div class="card-value">¥{{ formatAmount(dashboard.monthSalesAmount) }}</div>
+              <div class="card-desc">来自本月订单累计金额</div>
             </div>
           </div>
         </el-card>
@@ -70,14 +70,22 @@
           <template #header>
             <div class="card-header">
               <span>最近订单</span>
-              <el-button type="text" size="small">查看全部</el-button>
+              <el-button type="text" size="small" @click="goToAllOrders">查看全部</el-button>
             </div>
           </template>
           <el-table :data="recentOrders" stripe style="width: 100%">
             <el-table-column prop="orderNo" label="订单号" width="180" />
             <el-table-column prop="userName" label="用户" />
-            <el-table-column prop="totalAmount" label="金额" />
-            <el-table-column prop="status" label="状态" />
+            <el-table-column label="金额">
+              <template #default="scope">
+                ¥{{ formatAmount(scope.row.totalAmount) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="状态">
+              <template #default="scope">
+                {{ getOrderStatusText(scope.row.status) }}
+              </template>
+            </el-table-column>
             <el-table-column prop="createTime" label="创建时间" width="180" />
           </el-table>
         </el-card>
@@ -88,13 +96,21 @@
           <template #header>
             <div class="card-header">
               <span>热销商品</span>
-              <el-button type="text" size="small">查看全部</el-button>
+              <el-button type="text" size="small" @click="goToAllProducts">查看全部</el-button>
             </div>
           </template>
           <el-table :data="hotProducts" stripe style="width: 100%">
             <el-table-column prop="name" label="商品名称" />
-            <el-table-column prop="category" label="分类" />
-            <el-table-column prop="price" label="价格" />
+            <el-table-column label="分类">
+              <template #default="scope">
+                {{ getCategoryName(scope.row.categoryId) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="价格">
+              <template #default="scope">
+                ¥{{ formatAmount(scope.row.price) }}
+              </template>
+            </el-table-column>
             <el-table-column prop="sales" label="销量" />
           </el-table>
         </el-card>
@@ -104,26 +120,87 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { Box, Document, User, Money } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import request from '@/api/request'
 
-// 最近订单数据
-const recentOrders = ref([
-  { orderNo: 'ORD20240101001', userName: 'test1', totalAmount: '¥128.00', status: '已完成', createTime: '2024-01-01 14:30:00' },
-  { orderNo: 'ORD20240101002', userName: 'test2', totalAmount: '¥256.00', status: '待发货', createTime: '2024-01-01 15:20:00' },
-  { orderNo: 'ORD20240101003', userName: 'test3', totalAmount: '¥99.00', status: '待支付', createTime: '2024-01-01 16:45:00' },
-  { orderNo: 'ORD20240101004', userName: 'test4', totalAmount: '¥199.00', status: '已发货', createTime: '2024-01-01 17:10:00' },
-  { orderNo: 'ORD20240101005', userName: 'test5', totalAmount: '¥328.00', status: '已完成', createTime: '2024-01-01 18:30:00' }
-])
+const router = useRouter()
 
-// 热销商品数据
-const hotProducts = ref([
-  { name: 'iPhone 15 Pro', category: '手机', price: '¥8999.00', sales: 120 },
-  { name: 'MacBook Pro', category: '电脑', price: '¥14999.00', sales: 80 },
-  { name: '休闲T恤', category: '男装', price: '¥99.00', sales: 500 },
-  { name: '无线耳机', category: '电子产品', price: '¥1299.00', sales: 200 },
-  { name: '运动鞋', category: '运动', price: '¥599.00', sales: 180 }
-])
+const dashboard = reactive({
+  productTotal: 0,
+  orderTotal: 0,
+  userTotal: 0,
+  monthSalesAmount: 0,
+  monthNewProducts: 0,
+  todayNewOrders: 0,
+  monthNewUsers: 0
+})
+
+const recentOrders = ref<any[]>([])
+const hotProducts = ref<any[]>([])
+
+const getDashboardData = async () => {
+  try {
+    const res = await request.get<any>('/admin/dashboard')
+    Object.assign(dashboard, {
+      productTotal: res.data.productTotal || 0,
+      orderTotal: res.data.orderTotal || 0,
+      userTotal: res.data.userTotal || 0,
+      monthSalesAmount: res.data.monthSalesAmount || 0,
+      monthNewProducts: res.data.monthNewProducts || 0,
+      todayNewOrders: res.data.todayNewOrders || 0,
+      monthNewUsers: res.data.monthNewUsers || 0
+    })
+    recentOrders.value = res.data.recentOrders || []
+    hotProducts.value = res.data.hotProducts || []
+  } catch (error) {
+    ElMessage.error('加载仪表盘数据失败')
+    console.error('加载仪表盘数据失败:', error)
+  }
+}
+
+const formatAmount = (amount: number | string) => {
+  const num = Number(amount || 0)
+  return num.toFixed(2)
+}
+
+const getOrderStatusText = (status: number) => {
+  const map: Record<number, string> = {
+    0: '待支付',
+    1: '已支付',
+    2: '已发货',
+    3: '已完成',
+    4: '已取消'
+  }
+  return map[status] || '未知'
+}
+
+const getCategoryName = (categoryId: number) => {
+  const categoryMap: Record<number, string> = {
+    1: '电子产品',
+    2: '服装配饰',
+    3: '食品饮料',
+    4: '手机',
+    5: '电脑',
+    6: '男装',
+    7: '女装'
+  }
+  return categoryMap[categoryId] || '其他'
+}
+
+const goToAllOrders = () => {
+  router.push('/admin/orders')
+}
+
+const goToAllProducts = () => {
+  router.push('/admin/products')
+}
+
+onMounted(() => {
+  getDashboardData()
+})
 </script>
 
 <style scoped lang="scss">
@@ -206,6 +283,11 @@ const hotProducts = ref([
   
   .mt-20 {
     margin-top: 20px;
+  }
+
+  .mt-20 .dashboard-card {
+    height: auto;
+    min-height: 420px;
   }
 }
 </style>

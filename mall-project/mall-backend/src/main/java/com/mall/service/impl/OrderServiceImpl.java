@@ -123,6 +123,9 @@ public class OrderServiceImpl implements OrderService {
             }
         }
         order.setAddressId(addressId);
+        order.setPayTime(null);
+        order.setDeliveryTime(null);
+        order.setCompleteTime(null);
         order.setCreateTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
         orderMapper.insert(order);
@@ -185,6 +188,9 @@ public class OrderServiceImpl implements OrderService {
             dto.setAddressId(order.getAddressId());
             dto.setCreateTime(order.getCreateTime());
             dto.setUpdateTime(order.getUpdateTime());
+            dto.setPayTime(order.getPayTime());
+            dto.setDeliveryTime(order.getDeliveryTime());
+            dto.setCompleteTime(order.getCompleteTime());
 
             // 地址信息（可选）
             if (order.getAddressId() != null) {
@@ -243,6 +249,9 @@ public class OrderServiceImpl implements OrderService {
         dto.setAddressId(order.getAddressId());
         dto.setCreateTime(order.getCreateTime());
         dto.setUpdateTime(order.getUpdateTime());
+        dto.setPayTime(order.getPayTime());
+        dto.setDeliveryTime(order.getDeliveryTime());
+        dto.setCompleteTime(order.getCompleteTime());
 
         if (order.getAddressId() != null) {
             Address address = addressMapper.selectById(order.getAddressId());
@@ -343,6 +352,7 @@ public class OrderServiceImpl implements OrderService {
         
         // 更新订单状态
         order.setStatus(1);  // 已支付
+        order.setPayTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
         orderMapper.updateById(order);
         

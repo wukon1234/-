@@ -24,6 +24,15 @@
           <el-option label="按商品" value="product" />
           <el-option label="按用户" value="user" />
         </el-select>
+
+        <el-date-picker
+          v-if="analysisType === 'date'"
+          v-model="analysisYear"
+          type="year"
+          placeholder="选择年份"
+          style="width: 140px; margin-right: 10px"
+          @change="handleYearChange"
+        />
         
         <el-button type="primary" @click="handleAnalysis">分析</el-button>
       </div>
@@ -61,40 +70,45 @@
             </div>
           </div>
         </div>
+
+        <div class="ai-analysis">
+          <div class="ai-header">AI分析结果</div>
+          <el-empty v-if="!aiResult" description="点击“分析”生成AI结论" />
+          <div v-else class="ai-content">{{ aiResult }}</div>
+        </div>
       </div>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import request from '@/api/request'
 
 // 日期范围
 const dateRange = ref<any>(null)
 // 分析类型
 const analysisType = ref('date')
+const analysisYear = ref(new Date())
 
 // 统计数据
 const stats = reactive({
-  totalOrders: 512,
-  totalAmount: 25600,
-  avgAmount: 50,
-  conversionRate: 12.5
+  totalOrders: 0,
+  totalAmount: 0,
+  avgAmount: 0,
+  conversionRate: 0
 })
 
 // 图表数据
-const chartData = ref([
-  { label: '1月', value: 120 },
-  { label: '2月', value: 190 },
-  { label: '3月', value: 150 },
-  { label: '4月', value: 210 },
-  { label: '5月', value: 180 },
-  { label: '6月', value: 250 }
-])
+const chartData = ref<Array<{ label: string; value: number }>>([])
+const aiResult = ref('')
 
 // 计算最大值用于图表显示
 const maxValue = computed(() => {
+  if (!chartData.value.length) {
+    return 1
+  }
   return Math.max(...chartData.value.map(item => item.value))
 })
 
@@ -110,48 +124,77 @@ const chartTitle = computed(() => {
 
 // 日期变更
 const handleDateChange = () => {
-  console.log('日期变更', dateRange.value)
+  loadAnalysisData()
 }
 
 // 分析类型变更
 const handleAnalysisTypeChange = () => {
-  console.log('分析类型变更', analysisType.value)
-  // 模拟不同分析类型的数据
-  if (analysisType.value === 'date') {
-    chartData.value = [
-      { label: '1月', value: 120 },
-      { label: '2月', value: 190 },
-      { label: '3月', value: 150 },
-      { label: '4月', value: 210 },
-      { label: '5月', value: 180 },
-      { label: '6月', value: 250 }
-    ]
-  } else if (analysisType.value === 'product') {
-    chartData.value = [
-      { label: 'iPhone 15 Pro', value: 120 },
-      { label: 'MacBook Pro', value: 80 },
-      { label: '休闲T恤', value: 500 },
-      { label: '无线耳机', value: 200 },
-      { label: '运动鞋', value: 180 }
-    ]
-  } else if (analysisType.value === 'user') {
-    chartData.value = [
-      { label: 'test1', value: 10 },
-      { label: 'test2', value: 8 },
-      { label: 'test3', value: 15 },
-      { label: 'test4', value: 12 },
-      { label: 'test5', value: 20 }
-    ]
+  loadAnalysisData()
+}
+
+const handleYearChange = () => {
+  loadAnalysisData()
+}
+
+const formatDate = (date: Date) => {
+  const yyyy = date.getFullYear()
+  const mm = `${date.getMonth() + 1}`.padStart(2, '0')
+  const dd = `${date.getDate()}`.padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+const loadAnalysisData = async () => {
+  try {
+    const params: Record<string, string> = {
+      type: analysisType.value
+    }
+    if (analysisType.value === 'date' && analysisYear.value) {
+      params.year = `${new Date(analysisYear.value).getFullYear()}`
+    }
+    if (dateRange.value && Array.isArray(dateRange.value) && dateRange.value.length === 2) {
+      params.startDate = formatDate(new Date(dateRange.value[0]))
+      params.endDate = formatDate(new Date(dateRange.value[1]))
+    }
+
+    const res = await request.get<any>('/admin/orders/analysis', { params })
+    stats.totalOrders = Number(res.data.totalOrders || 0)
+    stats.totalAmount = Number(res.data.totalAmount || 0)
+    stats.avgAmount = Number(res.data.avgAmount || 0)
+    stats.conversionRate = Number(res.data.conversionRate || 0)
+    chartData.value = (res.data.chartData || []).map((item: any) => ({
+      label: item.label,
+      value: Number(item.value || 0)
+    }))
+  } catch (error) {
+    ElMessage.error('订单分析失败')
+    console.error('订单分析失败:', error)
   }
 }
 
-// 执行分析
-const handleAnalysis = () => {
-  console.log('执行分析', { dateRange: dateRange.value, analysisType: analysisType.value })
-  ElMessage.success('分析完成')
-  // 这里可以添加实际的分析逻辑
-  // 例如：orderService.analysis(dateRange.value, analysisType.value)
+// 执行分析（统计 + AI洞察）
+const handleAnalysis = async () => {
+  await loadAnalysisData()
+  try {
+    const aiRes = await request.post<any>('/admin/orders/analysis/ai', {
+      type: analysisType.value,
+      totalOrders: stats.totalOrders,
+      totalAmount: stats.totalAmount,
+      avgAmount: stats.avgAmount,
+      conversionRate: stats.conversionRate,
+      chartData: chartData.value
+    })
+    aiResult.value = aiRes.data.content || ''
+    ElMessage.success('分析完成')
+  } catch (error) {
+    aiResult.value = ''
+    ElMessage.error('AI分析失败')
+    console.error('AI分析失败:', error)
+  }
 }
+
+onMounted(() => {
+  loadAnalysisData()
+})
 </script>
 
 <style scoped lang="scss">
@@ -229,6 +272,27 @@ const handleAnalysis = () => {
               }
             }
           }
+        }
+      }
+
+      .ai-analysis {
+        margin-top: 24px;
+        padding: 16px;
+        background: #fafafa;
+        border: 1px solid #ebeef5;
+        border-radius: 8px;
+
+        .ai-header {
+          font-size: 16px;
+          font-weight: 600;
+          color: #303133;
+          margin-bottom: 12px;
+        }
+
+        .ai-content {
+          white-space: pre-wrap;
+          line-height: 1.8;
+          color: #606266;
         }
       }
     }

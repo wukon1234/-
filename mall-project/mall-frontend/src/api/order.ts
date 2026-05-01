@@ -71,3 +71,40 @@ export const payOrder = (orderId: number) => {
   return request.put(`/order/${orderId}/pay`)
 }
 
+/**
+ * 管理端：订单列表
+ */
+export const getAdminOrderList = (params: {
+  page?: number
+  size?: number
+  orderNo?: string
+  userName?: string
+  status?: number
+}) => {
+  return request.get<{
+    list: any[]
+    total: number
+  }>('/admin/orders', { params })
+}
+
+/**
+ * 管理端：订单详情
+ */
+export const getAdminOrderDetail = (orderId: number) => {
+  return request.get<any>(`/admin/orders/${orderId}`)
+}
+
+/**
+ * 管理端：发货
+ */
+export const shipOrderByAdmin = (orderId: number) => {
+  return request.put(`/admin/orders/${orderId}/ship`)
+}
+
+/**
+ * 管理端：取消订单
+ */
+export const cancelOrderByAdmin = (orderId: number) => {
+  return request.put(`/admin/orders/${orderId}/cancel`)
+}
+

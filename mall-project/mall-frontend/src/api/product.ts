@@ -27,6 +27,23 @@ export const getProductById = (id: number) => {
   return request.get<Product>(`/products/${id}`)
 }
 
+export const getAdminProductById = (id: number) => {
+  return request.get<Product>(`/products/admin/${id}`)
+}
+
+export const uploadProductImage = (file: File) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post<{
+    url: string
+    fileName: string
+  }>('/products/upload-image', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
 export const getHotProducts = (limit = 8) => {
   return request.get<Product[]>('/products/hot', { params: { limit } })
 }

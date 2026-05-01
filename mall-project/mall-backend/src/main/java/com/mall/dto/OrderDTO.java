@@ -32,6 +32,12 @@ public class OrderDTO {
     private LocalDateTime createTime;
     
     private LocalDateTime updateTime;
+
+    private LocalDateTime payTime;
+
+    private LocalDateTime deliveryTime;
+
+    private LocalDateTime completeTime;
     
     private List<OrderItemDTO> items;
 }

@@ -1,7 +1,7 @@
 <template>
   <div class="admin-add-product">
     <div class="page-header">
-      <h2 class="page-title">添加商品</h2>
+      <h2 class="page-title">{{ isEdit ? '编辑商品' : '添加商品' }}</h2>
       <el-button @click="$router.push('/admin/products')">
         <el-icon><ArrowLeft /></el-icon> 返回列表
       </el-button>
@@ -23,11 +23,13 @@
             
             <el-form-item label="商品分类" prop="categoryId">
               <el-select v-model="productForm.categoryId" placeholder="请选择商品分类">
-                <el-option label="手机" value="1" />
-                <el-option label="电脑" value="2" />
-                <el-option label="服装" value="3" />
-                <el-option label="家居" value="4" />
-                <el-option label="电子产品" value="5" />
+                <el-option label="电子产品" :value="1" />
+                <el-option label="服装配饰" :value="2" />
+                <el-option label="食品饮料" :value="3" />
+                <el-option label="手机" :value="4" />
+                <el-option label="电脑" :value="5" />
+                <el-option label="男装" :value="6" />
+                <el-option label="女装" :value="7" />
               </el-select>
             </el-form-item>
             
@@ -40,7 +42,7 @@
             </el-form-item>
             
             <el-form-item label="商品状态" prop="status">
-              <el-switch v-model="productForm.status" active-value="1" inactive-value="0" />
+              <el-switch v-model="productForm.status" :active-value="1" :inactive-value="0" />
             </el-form-item>
           </el-col>
           
@@ -48,15 +50,14 @@
             <el-form-item label="商品图片">
               <el-upload
                 class="upload-demo"
-                action="#"
+                :http-request="handleUploadRequest"
                 :on-preview="handlePreview"
                 :on-remove="handleRemove"
                 :file-list="fileList"
-                multiple
-                :limit="3"
+                :limit="1"
                 :on-exceed="handleExceed"
                 :before-upload="beforeUpload"
-                :auto-upload="false"
+                :auto-upload="true"
               >
                 <el-button type="primary">
                   <el-icon><Upload /></el-icon> 点击上传
@@ -96,21 +97,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Upload, ChatLineRound } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { FormInstance, UploadFile } from 'element-plus'
-import { generateProductContent, type AIProductRequest, type AIProductResponse } from '@/api/product'
+import type { FormInstance, UploadFile, UploadRequestOptions } from 'element-plus'
+import { addProduct, generateProductContent, getAdminProductById, updateProduct, uploadProductImage, type Product } from '@/api/product'
 
 const router = useRouter()
+const route = useRoute()
 const productFormRef = ref<FormInstance>()
 const loading = ref(false)
+const editId = computed(() => Number(route.query.id || 0))
+const isEdit = computed(() => editId.value > 0)
 
 // 商品表单
 const productForm = reactive({
+  id: undefined as number | undefined,
   name: '',
-  categoryId: '',
+  categoryId: undefined as number | undefined,
   price: 0,
   stock: 0,
   status: 1,
@@ -187,17 +192,29 @@ const beforeUpload = (file: File) => {
 
 // 处理文件超出数量限制
 const handleExceed = (files: File[], fileList: UploadFile[]) => {
-  ElMessage.error(`只能上传 ${3} 个文件`)
+  ElMessage.error('仅支持上传 1 张主图')
 }
 
 // 处理文件移除
 const handleRemove = (file: UploadFile, fileList: UploadFile[]) => {
-  console.log('文件移除', file, fileList)
+  productForm.imageUrl = ''
 }
 
 // 处理文件预览
 const handlePreview = (file: UploadFile) => {
   console.log('文件预览', file)
+}
+
+const handleUploadRequest = async (options: UploadRequestOptions) => {
+  try {
+    const res = await uploadProductImage(options.file as File)
+    productForm.imageUrl = res.data.url
+    options.onSuccess?.(res.data as any)
+    ElMessage.success('图片上传成功')
+  } catch (error) {
+    options.onError?.(error as Error)
+    ElMessage.error('图片上传失败')
+  }
 }
 
 // 提交表单
@@ -208,14 +225,27 @@ const handleSubmit = async () => {
     if (valid) {
       loading.value = true
       try {
-        // 这里可以添加提交逻辑
-        setTimeout(() => {
+        const payload: Product = {
+          id: productForm.id || 0,
+          name: productForm.name.trim(),
+          description: productForm.description.trim(),
+          categoryId: productForm.categoryId,
+          price: Number(productForm.price),
+          stock: Number(productForm.stock),
+          imageUrl: productForm.imageUrl,
+          status: Number(productForm.status)
+        }
+        if (isEdit.value) {
+          await updateProduct(payload)
+          ElMessage.success('商品更新成功')
+        } else {
+          await addProduct(payload)
           ElMessage.success('商品添加成功')
-          loading.value = false
-          router.push('/admin/products')
-        }, 1000)
+        }
+        router.push('/admin/products')
       } catch (error: any) {
         ElMessage.error(error.response?.data?.message || '商品添加失败')
+      } finally {
         loading.value = false
       }
     }
@@ -227,6 +257,36 @@ const handleReset = () => {
   if (productFormRef.value) {
     productFormRef.value.resetFields()
     fileList.value = []
+  }
+}
+
+const loadProductDetail = async () => {
+  if (!isEdit.value) {
+    return
+  }
+  loading.value = true
+  try {
+    const res = await getAdminProductById(editId.value)
+    const data = res.data
+    productForm.id = data.id
+    productForm.name = data.name || ''
+    productForm.categoryId = data.categoryId
+    productForm.price = Number(data.price || 0)
+    productForm.stock = Number(data.stock || 0)
+    productForm.status = Number(data.status ?? 1)
+    productForm.description = data.description || ''
+    productForm.imageUrl = data.imageUrl || ''
+    fileList.value = data.imageUrl
+      ? [{
+          name: '主图',
+          url: data.imageUrl
+        } as UploadFile]
+      : []
+  } catch (error) {
+    ElMessage.error('获取商品详情失败')
+    console.error('获取商品详情失败:', error)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -310,6 +370,10 @@ const getCategoryName = (categoryId: string | number) => {
   }
   return categoryMap[categoryId] || ''
 }
+
+onMounted(() => {
+  loadProductDetail()
+})
 </script>
 
 <style scoped lang="scss">
