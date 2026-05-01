@@ -2,7 +2,7 @@
   <div class="product-recommendation" v-if="products && products.length > 0">
     <div class="recommendation-title">
       <el-icon><ShoppingBag /></el-icon>
-      <span>推荐商品</span>
+      <span>HUD · 候选商品阵列</span>
     </div>
     <div class="product-list">
       <div
@@ -58,19 +58,23 @@ const handleImageError = (event: Event) => {
 
 <style scoped lang="scss">
 .product-recommendation {
-  margin-top: 15px;
-  padding: 15px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e4e7ed;
+  margin-top: 12px;
+  padding: 14px;
+  background: rgba(4, 6, 14, 0.88);
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  box-shadow: inset 0 0 40px rgba(34, 211, 238, 0.04);
 
   .recommendation-title {
     display: flex;
     align-items: center;
     gap: 8px;
+    font-family: var(--font-mono, monospace);
     font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.06em;
     margin-bottom: 12px;
-    color: #409eff;
+    color: var(--color-accent-green, #4ade80);
   }
 
   .product-list {
@@ -82,15 +86,16 @@ const handleImageError = (event: Event) => {
       flex: 1;
       min-width: 150px;
       max-width: 200px;
-      background: #fff;
-      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.75);
+      border-radius: var(--radius-md, 10px);
       padding: 12px;
       cursor: pointer;
-      transition: all 0.3s;
-      border: 1px solid #e4e7ed;
+      transition: var(--transition, all 0.28s ease-out);
+      border: 1px solid rgba(148, 163, 184, 0.12);
 
       &:hover {
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        border-color: rgba(34, 211, 238, 0.45);
+        box-shadow: 0 0 20px rgba(34, 211, 238, 0.12);
         transform: translateY(-2px);
       }
 
@@ -100,8 +105,8 @@ const handleImageError = (event: Event) => {
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: #f5f7fa;
-        border-radius: 6px;
+        background: rgba(3, 7, 18, 0.6);
+        border-radius: var(--radius-sm, 6px);
         margin-bottom: 8px;
         overflow: hidden;
 
@@ -112,15 +117,15 @@ const handleImageError = (event: Event) => {
         }
 
         .el-icon {
-          font-size: 48px;
-          color: #c0c4cc;
+          font-size: 42px;
+          color: rgba(148, 163, 184, 0.45);
         }
       }
 
       .product-info {
         .product-name {
-          font-size: 14px;
-          color: #303133;
+          font-size: 13px;
+          color: var(--color-text-bold, #f1f5f9);
           margin-bottom: 6px;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -128,13 +133,12 @@ const handleImageError = (event: Event) => {
         }
 
         .product-price {
-          font-size: 16px;
-          font-weight: 600;
-          color: #f56c6c;
+          font-size: 15px;
+          font-weight: 700;
+          color: var(--color-danger, #f87171);
         }
       }
     }
   }
 }
 </style>
-

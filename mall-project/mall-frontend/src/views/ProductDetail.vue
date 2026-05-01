@@ -208,17 +208,23 @@ onMounted(() => load())
 <style scoped lang="scss">
 .product-detail {
   .detail-card {
+    border-radius: var(--radius-lg, 12px);
+    border: 1px solid var(--color-border, #e5e7eb);
+    box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.04));
+
     .detail-wrap {
       display: flex;
-      gap: 20px;
+      gap: 24px;
+      flex-wrap: wrap;
     }
 
     .img {
       width: 360px;
+      max-width: 100%;
       height: 360px;
-      border-radius: 8px;
+      border-radius: var(--radius-lg, 12px);
       overflow: hidden;
-      background: #f5f5f5;
+      background: var(--color-bg-200, #f1f3f5);
 
       .image-slot {
         display: flex;
@@ -235,18 +241,20 @@ onMounted(() => load())
 
       .name {
         margin: 0 0 10px 0;
-        color: #333;
+        color: var(--color-text-bold, #222);
+        font-size: 24px;
+        font-weight: 700;
       }
 
       .price {
-        color: #f56c6c;
+        color: var(--color-danger, #ff4d4f);
         font-size: 26px;
         font-weight: 700;
         margin-bottom: 10px;
       }
 
       .stock {
-        color: #666;
+        color: var(--color-text, #444);
         margin-bottom: 10px;
       }
 
@@ -268,7 +276,7 @@ onMounted(() => load())
       }
 
       .desc {
-        color: #888;
+        color: var(--color-text-weak, #888);
         line-height: 1.7;
         margin: 10px 0 16px 0;
       }
@@ -286,7 +294,8 @@ onMounted(() => load())
     
     h3 {
       margin-bottom: 20px;
-      color: #333;
+      color: var(--color-text-bold, #222);
+      font-weight: 700;
     }
     
     .add-review-card {

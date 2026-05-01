@@ -227,20 +227,20 @@ onMounted(() => {
     font-size: 15px;
     font-weight: 600;
     transition: all 0.3s ease;
-    color: #333;
-    
+    color: var(--color-text, #cbd5e1);
+
     :deep(.el-icon) {
       margin-right: 8px;
     }
-    
+
     &:hover {
-      color: #667eea;
-      background-color: rgba(102, 126, 234, 0.05);
+      color: var(--color-accent-cyan, #22d3ee);
+      background-color: rgba(34, 211, 238, 0.06);
     }
-    
+
     &.is-active {
-      color: #667eea;
-      background-color: rgba(102, 126, 234, 0.1);
+      color: var(--color-accent-green, #4ade80);
+      background-color: rgba(74, 222, 128, 0.08);
     }
   }
 }

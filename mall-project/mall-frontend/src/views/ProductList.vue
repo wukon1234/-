@@ -1,16 +1,20 @@
 <template>
-  <div class="product-list">
-    <div class="header">
-      <h2>商品列表</h2>
+  <div class="product-list page-fade">
+    <div class="toolbar card-surface">
+      <div class="toolbar-head">
+        <h2>商品列表</h2>
+        <p class="toolbar-hint">搜索名称、描述或规格，支持分页浏览</p>
+      </div>
       <div class="search">
         <el-input
           v-model="keyword"
           placeholder="搜索商品（名称/描述/规格）"
           clearable
+          size="large"
           @keyup.enter="handleSearch"
         >
           <template #append>
-            <el-button @click="handleSearch">搜索</el-button>
+            <el-button type="primary" @click="handleSearch">搜索</el-button>
           </template>
         </el-input>
       </div>
@@ -100,34 +104,88 @@ onMounted(() => load())
 </script>
 
 <style scoped lang="scss">
-.product-list {
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
+.page-fade {
+  animation: pageIn 0.4s ease-out both;
+}
 
-    h2 {
-      margin: 0;
-      color: #333;
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-surface {
+  background: var(--surface-panel, rgba(15, 23, 42, 0.86));
+  border: 1px solid var(--tech-panel-border, rgba(34, 211, 238, 0.22));
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-sm);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
+}
+
+.product-list {
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+
+    .toolbar-head {
+      flex: 1;
+      min-width: 200px;
+
+      h2 {
+        margin: 0 0 6px 0;
+        color: var(--color-text-bold, #222);
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      .toolbar-hint {
+        margin: 0;
+        font-size: 13px;
+        color: var(--color-text-weak, #888);
+      }
     }
 
     .search {
-      width: 420px;
-      max-width: 60vw;
+      width: 100%;
+      max-width: 440px;
+      flex: 1;
     }
   }
 
   .p-card {
     margin-bottom: 16px;
     cursor: pointer;
+    border-radius: var(--radius-lg, 12px);
+    border: 1px solid var(--color-border, #e5e7eb);
+    transition: var(--transition, all 0.28s ease-out);
+
+    &:hover {
+      transform: translateY(-3px);
+      border-color: rgba(34, 211, 238, 0.42);
+      box-shadow: var(--shadow-hover);
+    }
 
     .p-img {
       width: 100%;
       height: 160px;
-      border-radius: 6px;
+      border-radius: var(--radius-lg, 12px) var(--radius-lg, 12px) 0 0;
       overflow: hidden;
-      background: #f5f5f5;
+      background: var(--color-bg-200, #f1f3f5);
+      transition: var(--transition, all 0.28s ease-out);
+
+      &:hover {
+        transform: scale(1.03);
+      }
 
       .image-slot {
         display: flex;
@@ -140,9 +198,9 @@ onMounted(() => load())
     }
 
     .p-name {
-      margin-top: 10px;
+      margin-top: 12px;
       font-weight: 600;
-      color: #222;
+      color: var(--color-text-bold, #222);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -150,7 +208,7 @@ onMounted(() => load())
 
     .p-desc {
       margin-top: 6px;
-      color: #888;
+      color: var(--color-text-weak, #888);
       font-size: 13px;
       height: 34px;
       overflow: hidden;
@@ -160,10 +218,10 @@ onMounted(() => load())
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 10px;
+      margin-top: 12px;
 
       .p-price {
-        color: #f56c6c;
+        color: var(--color-danger, #ff4d4f);
         font-weight: 700;
         font-size: 16px;
       }
@@ -173,7 +231,7 @@ onMounted(() => load())
   .pager {
     display: flex;
     justify-content: flex-end;
-    margin-top: 10px;
+    margin-top: 16px;
   }
 }
 </style>

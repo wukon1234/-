@@ -1,40 +1,56 @@
 <template>
-  <div class="register-container">
-    <el-card class="register-card">
+  <div class="sci-auth-scene login-full">
+    <div class="hud-corner hud-corner--tl" aria-hidden="true" />
+    <div class="hud-corner hud-corner--br" aria-hidden="true" />
+
+    <el-card class="register-card hud-panel" shadow="never">
       <template #header>
         <div class="card-header">
-          <h2>注册账号</h2>
-          <p>商城智能助手系统</p>
+          <div class="code-tag">PROVISION_ACCOUNT // SYNC_TRUST_ZONE</div>
+          <h2>登记新节点</h2>
+          <p>生成本地身份并完成握手</p>
         </div>
       </template>
-      
+
       <div class="register-form">
         <el-form :model="registerForm" :rules="registerRules" ref="registerFormRef" label-position="top">
           <el-form-item label="用户名" prop="username">
             <el-input v-model="registerForm.username" placeholder="请输入用户名" prefix-icon="User" />
           </el-form-item>
-          
+
           <el-form-item label="密码" prop="password">
-            <el-input v-model="registerForm.password" type="password" placeholder="请输入密码" prefix-icon="Lock" show-password />
+            <el-input
+              v-model="registerForm.password"
+              type="password"
+              placeholder="请输入密码"
+              prefix-icon="Lock"
+              show-password
+            />
           </el-form-item>
-          
+
           <el-form-item label="确认密码" prop="confirmPassword">
-            <el-input v-model="registerForm.confirmPassword" type="password" placeholder="请再次输入密码" prefix-icon="Lock" show-password />
+            <el-input
+              v-model="registerForm.confirmPassword"
+              type="password"
+              placeholder="请再次输入密码"
+              prefix-icon="Lock"
+              show-password
+            />
           </el-form-item>
-          
+
           <el-form-item label="邮箱" prop="email">
             <el-input v-model="registerForm.email" placeholder="请输入邮箱" prefix-icon="Message" />
           </el-form-item>
-          
+
           <el-form-item>
             <el-button type="primary" class="register-btn" @click="handleRegister" :loading="loading">
-              注册
+              完成注册
             </el-button>
           </el-form-item>
-          
+
           <div class="login-link">
-            <span>已有账号？</span>
-            <el-link type="primary" @click="$router.push('/login')">立即登录</el-link>
+            <span>已有会话?</span>
+            <el-link type="primary" @click="$router.push('/login')">返回接入</el-link>
           </div>
         </el-form>
       </div>
@@ -90,17 +106,17 @@ const registerRules = reactive<FormRules>({
 
 const handleRegister = async () => {
   if (!registerFormRef.value) return
-  
+
   try {
     await registerFormRef.value.validate()
     loading.value = true
-    
-    // 只传递后端需要的字段
+
     await register({
       username: registerForm.username,
       password: registerForm.password,
       email: registerForm.email
     })
+
     ElMessage.success('注册成功，请登录')
     router.push('/login')
   } catch (error: any) {
@@ -114,54 +130,126 @@ const handleRegister = async () => {
 </script>
 
 <style scoped lang="scss">
-.register-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.login-full {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  padding: 20px;
+}
+
+.hud-corner {
+  position: fixed;
+  width: 120px;
+  height: 120px;
+  pointer-events: none;
+  opacity: 0.45;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    background: var(--color-accent-cyan, #22d3ee);
+    box-shadow: 0 0 14px rgba(34, 211, 238, 0.4);
+  }
+
+  &--tl {
+    top: 24px;
+    left: 24px;
+
+    &::before {
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+    }
+
+    &::after {
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100%;
+    }
+  }
+
+  &--br {
+    bottom: 24px;
+    right: 24px;
+
+    &::before {
+      bottom: 0;
+      right: 0;
+      width: 100%;
+      height: 2px;
+    }
+
+    &::after {
+      bottom: 0;
+      right: 0;
+      width: 2px;
+      height: 100%;
+    }
+  }
+}
+
+.hud-panel {
+  border: 1px solid var(--tech-panel-border, rgba(34, 211, 238, 0.22));
+  border-radius: var(--radius-xl, 16px);
+  background: rgba(3, 7, 18, 0.78) !important;
+  backdrop-filter: blur(22px);
+  box-shadow:
+    inset 0 0 80px rgba(74, 222, 128, 0.03),
+    var(--shadow-lg);
+  overflow: visible;
 }
 
 .register-card {
   width: 100%;
-  max-width: 400px;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-  
+  max-width: 440px;
+
+  :deep(.el-card__header) {
+    background: transparent;
+    padding: 20px 24px 0;
+    border-bottom: none !important;
+  }
+
   .card-header {
-    text-align: center;
-    padding: 20px 0;
-    
-    h2 {
-      margin: 0 0 10px 0;
-      color: #333;
-      font-size: 24px;
+    text-align: left;
+
+    .code-tag {
+      font-family: var(--font-mono, monospace);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--color-accent-green, #4ade80);
+      margin-bottom: 12px;
     }
-    
+
+    h2 {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--color-text-bold, #f1f5f9);
+    }
+
     p {
       margin: 0;
-      color: #666;
+      color: var(--color-text-weak, #64748b);
       font-size: 14px;
     }
   }
-  
+
   .register-form {
-    padding: 20px 30px 30px;
+    padding: 8px 24px 28px;
   }
-  
+
   .register-btn {
     width: 100%;
-    height: 40px;
-    font-size: 16px;
+    height: 46px;
+    font-size: 15px;
   }
-  
+
   .login-link {
     text-align: center;
     margin-top: 20px;
-    color: #666;
-    
+    color: var(--color-text-weak, #64748b);
+    font-size: 13px;
+
     span {
       margin-right: 8px;
     }

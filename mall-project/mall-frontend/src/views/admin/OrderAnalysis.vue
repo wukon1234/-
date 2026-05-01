@@ -245,29 +245,31 @@ onMounted(() => {
               .bar-label {
                 width: 100px;
                 font-size: 14px;
-                color: #666;
+                color: var(--color-text-weak, #64748b);
               }
-              
+
               .bar-container {
                 flex: 1;
                 height: 20px;
-                background-color: #f0f0f0;
+                background-color: rgba(15, 23, 42, 0.75);
                 border-radius: 10px;
                 overflow: hidden;
-                
+                border: 1px solid rgba(34, 211, 238, 0.12);
+
                 .bar-fill {
                   height: 100%;
-                  background-color: #409eff;
+                  background: linear-gradient(90deg, #22d3ee, #4ade80);
                   border-radius: 10px;
                   transition: width 0.5s ease;
+                  box-shadow: 0 0 12px rgba(34, 211, 238, 0.25);
                 }
               }
-              
+
               .bar-value {
                 width: 60px;
                 font-size: 14px;
                 font-weight: 500;
-                color: #333;
+                color: var(--color-text-bold, #f1f5f9);
                 text-align: right;
               }
             }

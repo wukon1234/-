@@ -206,14 +206,23 @@ onMounted(() => {
 <style scoped lang="scss">
 .admin-dashboard {
   .page-title {
-    margin-bottom: 20px;
-    font-size: 24px;
+    margin-bottom: 24px;
+    font-size: 26px;
     font-weight: 700;
-    color: #333;
+    color: var(--color-text-bold, #222);
+    letter-spacing: -0.02em;
   }
-  
+
   .dashboard-card {
     height: 150px;
+    border-radius: var(--radius-lg, 12px);
+    border: 1px solid var(--color-border, #e5e7eb);
+    transition: var(--transition, all 0.28s ease-out);
+
+    &:hover {
+      border-color: rgba(102, 126, 234, 0.35);
+      box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.06));
+    }
     
     .card-header {
       display: flex;
@@ -237,8 +246,8 @@ onMounted(() => {
         margin-right: 20px;
         
         &.product-icon {
-          background-color: rgba(102, 126, 234, 0.1);
-          color: #667eea;
+          background-color: rgba(34, 211, 238, 0.14);
+          color: #22d3ee;
         }
         
         &.order-icon {
@@ -262,20 +271,20 @@ onMounted(() => {
         
         .card-title {
           font-size: 14px;
-          color: #666;
+          color: var(--color-text-weak, #888);
           margin-bottom: 8px;
         }
-        
+
         .card-value {
           font-size: 28px;
           font-weight: 700;
-          color: #333;
+          color: var(--color-text-bold, #222);
           margin-bottom: 4px;
         }
-        
+
         .card-desc {
           font-size: 12px;
-          color: #999;
+          color: var(--color-text-weak, #888);
         }
       }
     }

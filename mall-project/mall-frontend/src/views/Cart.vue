@@ -231,11 +231,17 @@ onMounted(() => {
 .cart {
   h2 {
     margin-bottom: 20px;
-    color: #333;
+    color: var(--color-text-bold, #222);
+    font-size: 24px;
+    font-weight: 700;
   }
 }
 
 .cart-card {
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--color-border, #e5e7eb);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.04));
+
   .cart-header {
     display: flex;
     justify-content: space-between;
@@ -253,7 +259,7 @@ onMounted(() => {
       display: flex;
       align-items: center;
       padding: 20px 0;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--color-border, #e5e7eb);
       
       &:last-child {
         border-bottom: none;
@@ -264,7 +270,7 @@ onMounted(() => {
         height: 120px;
         margin: 0 20px;
         cursor: pointer;
-        border-radius: 4px;
+        border-radius: var(--radius-md, 8px);
         overflow: hidden;
         
         .image-slot {
@@ -289,7 +295,7 @@ onMounted(() => {
           color: #333;
           
           &:hover {
-            color: #409eff;
+            color: var(--color-accent-cyan, #22d3ee);
           }
         }
         
@@ -308,7 +314,7 @@ onMounted(() => {
           gap: 20px;
           
           .price {
-            color: #f56c6c;
+            color: var(--color-danger, #ff4d4f);
             font-size: 18px;
             font-weight: bold;
           }
@@ -336,7 +342,7 @@ onMounted(() => {
         }
         
         .subtotal-value {
-          color: #f56c6c;
+          color: var(--color-danger, #ff4d4f);
           font-size: 16px;
           font-weight: bold;
           margin-left: 10px;
@@ -351,13 +357,13 @@ onMounted(() => {
     align-items: center;
     margin-top: 20px;
     padding-top: 20px;
-    border-top: 2px solid #f0f0f0;
+    border-top: 1px solid var(--color-border, #e5e7eb);
     
     .total-info {
       font-size: 16px;
       
       .total-price {
-        color: #f56c6c;
+        color: var(--color-danger, #ff4d4f);
         font-size: 24px;
         margin-left: 10px;
       }

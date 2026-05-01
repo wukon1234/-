@@ -3,12 +3,14 @@
     <el-header class="admin-header">
       <div class="header-content">
         <div class="logo" @click="$router.push('/admin')">
-          <h2>商城管理系统</h2>
+          <span class="logo-mark">▍</span>
+          <h2>ADMIN.OS</h2>
         </div>
         <div class="header-right">
           <el-dropdown @command="handleCommand">
             <span class="el-dropdown-link">
-              {{ userStore.userInfo?.username }} <el-icon class="el-icon--right"><arrow-down /></el-icon>
+              {{ userStore.userInfo?.username }}
+              <el-icon class="el-icon--right"><arrow-down /></el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
@@ -20,15 +22,12 @@
         </div>
       </div>
     </el-header>
-    
-    <el-container>
-      <el-aside width="200px" class="admin-aside">
+
+    <el-container class="admin-body">
+      <el-aside width="220px" class="admin-aside">
         <el-menu
           :default-active="activeMenu"
           class="admin-menu"
-          background-color="#545c64"
-          text-color="#fff"
-          active-text-color="#ffd04b"
           @select="handleMenuSelect"
         >
           <el-menu-item index="/admin/dashboard">
@@ -64,7 +63,7 @@
           </el-menu-item>
         </el-menu>
       </el-aside>
-      
+
       <el-main class="admin-main">
         <router-view />
       </el-main>
@@ -85,14 +84,8 @@ const userStore = useUserStore()
 const activeMenu = computed(() => route.path)
 
 const handleMenuSelect = (key: string, _keyPath: string[]) => {
-  // 确保key是字符串类型的路由路径
-  if (typeof key === 'string') {
-    if (key.startsWith('/')) {
-      router.push(key)
-    } else {
-      // 对于非路由路径的key，忽略处理
-      console.log('Non-route key selected:', key)
-    }
+  if (typeof key === 'string' && key.startsWith('/')) {
+    router.push(key)
   }
 }
 
@@ -114,83 +107,125 @@ const handleCommand = (command: string) => {
 }
 
 .admin-header {
-  background-color: #363d44;
-  color: white;
-  height: 60px;
-  line-height: 60px;
-  padding: 0 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  
+  height: var(--header-height, 68px);
+  padding: 0 24px;
+  flex-shrink: 0;
+  background: rgba(7, 11, 20, 0.88);
+  backdrop-filter: saturate(140%) blur(12px);
+  -webkit-backdrop-filter: saturate(140%) blur(12px);
+  border-bottom: 1px solid rgba(34, 211, 238, 0.14);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+
   .header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    max-width: 1400px;
+    max-width: 1760px;
     margin: 0 auto;
+    height: 100%;
   }
-  
+
   .logo {
     cursor: pointer;
-    
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .logo-mark {
+      color: var(--color-accent-cyan, #22d3ee);
+      opacity: 0.75;
+      font-size: 20px;
+    }
+
     h2 {
       margin: 0;
-      font-size: 20px;
+      font-family: var(--font-mono, monospace);
+      font-size: 16px;
       font-weight: 700;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      letter-spacing: 0.12em;
+      color: var(--color-text-bold, #f1f5f9);
     }
   }
-  
+
   .header-right {
     .el-dropdown-link {
-      color: white;
+      color: var(--color-accent-cyan, #22d3ee);
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 8px;
-      
+      font-family: var(--font-mono, monospace);
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      padding: 8px 12px;
+      border-radius: var(--radius-md, 8px);
+      border: 1px solid rgba(34, 211, 238, 0.18);
+      background: rgba(15, 23, 42, 0.6);
+      transition: var(--transition, all 0.28s ease-out);
+
       &:hover {
-        color: #ffd04b;
+        border-color: rgba(34, 211, 238, 0.45);
+        box-shadow: 0 0 16px rgba(34, 211, 238, 0.2);
       }
     }
   }
 }
 
+.admin-body {
+  flex: 1;
+  min-height: 0;
+}
+
 .admin-aside {
-  background-color: #545c64;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
-  
+  background: rgba(11, 18, 36, 0.95);
+  border-right: 1px solid rgba(34, 211, 238, 0.1);
+
   .admin-menu {
     height: 100%;
     border-right: none;
-    
+    padding: 14px 8px;
+    background: transparent;
+
+    :deep(.el-menu-item),
     :deep(.el-sub-menu__title) {
-      padding: 0 20px;
-      height: 60px;
-      line-height: 60px;
-      
-      &:hover {
-        background-color: #464c52;
-      }
+      border-radius: var(--radius-md, 8px);
+      margin: 4px 0;
+      color: var(--color-text, #cbd5e1);
+      font-weight: 500;
     }
-    
+
+    :deep(.el-menu-item:hover),
+    :deep(.el-sub-menu__title:hover) {
+      background: rgba(34, 211, 238, 0.08) !important;
+      color: var(--color-accent-cyan, #22d3ee) !important;
+    }
+
+    :deep(.el-menu-item.is-active) {
+      background: linear-gradient(
+        135deg,
+        rgba(34, 211, 238, 0.16) 0%,
+        rgba(74, 222, 128, 0.1) 100%
+      ) !important;
+      color: var(--color-accent-green, #4ade80) !important;
+      font-weight: 700;
+      box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.2);
+    }
+
+    :deep(.el-menu--inline) {
+      background: transparent !important;
+    }
+
     :deep(.el-menu-item) {
-      padding: 0 20px 0 40px;
-      height: 60px;
-      line-height: 60px;
-      
-      &:hover {
-        background-color: #464c52;
-      }
+      min-width: auto;
     }
   }
 }
 
 .admin-main {
-  background-color: #f0f2f5;
-  padding: 20px;
-  min-height: calc(100vh - 60px);
+  background: transparent;
+  padding: 24px;
+  min-height: calc(100vh - var(--header-height, 68px));
+  overflow: auto;
 }
 </style>

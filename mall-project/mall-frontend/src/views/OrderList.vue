@@ -219,7 +219,9 @@ onMounted(() => {
 .order-list {
   h2 {
     margin-bottom: 20px;
-    color: #333;
+    color: var(--color-text-bold, #222);
+    font-size: 24px;
+    font-weight: 700;
   }
 }
 
@@ -229,6 +231,14 @@ onMounted(() => {
 
 .order-card {
   margin-bottom: 20px;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--color-border, #e5e7eb);
+  transition: var(--transition, all 0.28s ease-out);
+
+  &:hover {
+    border-color: rgba(102, 126, 234, 0.3);
+    box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.06));
+  }
   
   .order-header {
     display: flex;
@@ -242,12 +252,12 @@ onMounted(() => {
       
       .order-no {
         font-weight: bold;
-        color: #333;
+        color: var(--color-text-bold, #222);
       }
-      
+
       .order-time {
         font-size: 12px;
-        color: #999;
+        color: var(--color-text-weak, #888);
       }
     }
   }
@@ -257,22 +267,22 @@ onMounted(() => {
       display: flex;
       align-items: center;
       padding: 15px 0;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--color-border, #e5e7eb);
       cursor: pointer;
-      
+
       &:last-child {
         border-bottom: none;
       }
-      
+
       &:hover {
-        background-color: #f5f5f5;
+        background-color: var(--color-bg-100, #f8f9fa);
       }
       
       .item-image {
         width: 80px;
         height: 80px;
         margin-right: 15px;
-        border-radius: 4px;
+        border-radius: var(--radius-md, 8px);
         overflow: hidden;
         
         .image-slot {
@@ -293,21 +303,21 @@ onMounted(() => {
         .item-name {
           margin: 0 0 10px 0;
           font-size: 16px;
-          color: #333;
+          color: var(--color-text-bold, #222);
         }
-        
+
         .item-specs {
           display: flex;
           gap: 20px;
           font-size: 14px;
-          color: #999;
+          color: var(--color-text-weak, #888);
         }
       }
-      
+
       .item-subtotal {
         font-size: 16px;
         font-weight: bold;
-        color: #f56c6c;
+        color: var(--color-danger, #ff4d4f);
         width: 100px;
         text-align: right;
       }
@@ -320,13 +330,13 @@ onMounted(() => {
     align-items: center;
     margin-top: 20px;
     padding-top: 20px;
-    border-top: 1px solid #f0f0f0;
-    
+    border-top: 1px solid var(--color-border, #e5e7eb);
+
     .order-total {
       font-size: 16px;
-      
+
       .total-price {
-        color: #f56c6c;
+        color: var(--color-danger, #ff4d4f);
         font-size: 20px;
         margin-left: 10px;
       }
@@ -342,7 +352,7 @@ onMounted(() => {
 .order-detail {
   h3 {
     margin: 20px 0 10px 0;
-    color: #333;
+    color: var(--color-text-bold, #222);
   }
 }
 </style>

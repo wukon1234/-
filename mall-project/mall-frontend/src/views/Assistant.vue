@@ -127,22 +127,37 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .assistant-container {
-  height: calc(100vh - 140px);
-  background: #fff;
-  border-radius: 8px;
-  padding: 20px;
+  min-height: calc(100vh - var(--header-height, 68px) - 48px);
+  background: transparent;
+  border-radius: var(--radius-lg, 12px);
+  padding: 0;
 }
 
 .assistant-layout {
-  height: 100%;
+  height: calc(100vh - var(--header-height, 68px) - 48px);
+  min-height: 420px;
+  padding: 2px;
+  border-radius: var(--radius-lg, 14px);
+  background: linear-gradient(
+    140deg,
+    rgba(34, 211, 238, 0.25) 0%,
+    rgba(15, 23, 42, 0.4) 40%,
+    rgba(74, 222, 128, 0.12) 100%
+  );
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.45);
+}
+
+.assistant-layout :deep(.el-row) {
+  background: rgba(4, 6, 12, 0.92);
+  border-radius: calc(var(--radius-lg, 12px) - 2px);
 }
 
 .conversation-list-col {
   height: 100%;
-  border-right: 1px solid #e4e7ed;
 }
 
 .chat-window-col {
   height: 100%;
+  padding-left: 0 !important;
 }
 </style>

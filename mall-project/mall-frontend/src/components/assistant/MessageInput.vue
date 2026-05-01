@@ -50,15 +50,28 @@ const handleSend = () => {
 
 <style scoped lang="scss">
 .message-input {
+  :deep(.el-textarea__inner) {
+    border-radius: var(--radius-lg, 12px);
+    border: 1px solid var(--color-border, #e5e7eb);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.04));
+    transition: var(--transition, all 0.28s ease-out);
+
+    &:focus {
+      border-color: var(--color-primary-start, #667eea);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+    }
+  }
+
   .input-actions {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 10px;
+    margin-top: 12px;
 
     .tips {
       font-size: 12px;
-      color: #909399;
+      color: var(--color-text-weak, #888);
     }
   }
 }

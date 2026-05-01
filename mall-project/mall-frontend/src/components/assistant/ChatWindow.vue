@@ -227,19 +227,28 @@ const formatTime = (time: string) => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: rgba(7, 11, 22, 0.65);
+  border-radius: 0 var(--radius-lg, 12px) var(--radius-lg, 12px) 0;
+  overflow: hidden;
 
   .chat-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
-    border-bottom: 1px solid #e4e7ed;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(34, 211, 238, 0.15);
+    background: rgba(7, 11, 22, 0.88);
+    backdrop-filter: blur(12px);
 
     h3 {
       margin: 0;
       font-size: 16px;
-      font-weight: 600;
+      font-weight: 700;
+      font-family: var(--font-mono, monospace);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--color-accent-cyan, #22d3ee);
+      text-shadow: 0 0 14px rgba(34, 211, 238, 0.35);
     }
   }
 
@@ -247,7 +256,7 @@ const formatTime = (time: string) => {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    background-color: #f5f5f5;
+    background-color: rgba(4, 6, 12, 0.85);
 
     .empty-state {
       height: 100%;
@@ -265,20 +274,26 @@ const formatTime = (time: string) => {
         flex-direction: row-reverse;
 
         .message-content {
-          background-color: #409eff;
-          color: #fff;
+          background: var(--color-primary-gradient);
+          color: #031018;
           margin-right: 10px;
+          border-radius: 16px 16px 4px 16px;
+          box-shadow: 0 0 24px rgba(34, 211, 238, 0.18);
 
           .message-time {
-            color: rgba(255, 255, 255, 0.8);
+            color: rgba(3, 16, 24, 0.65);
           }
         }
       }
 
       &.assistant-message {
         .message-content {
-          background-color: #fff;
+          background: rgba(15, 23, 42, 0.94);
+          color: var(--color-text-bold, #f1f5f9);
           margin-left: 10px;
+          border-radius: 16px 16px 16px 4px;
+          border: 1px solid rgba(74, 222, 128, 0.18);
+          box-shadow: inset 0 0 48px rgba(34, 211, 238, 0.04);
         }
       }
 
@@ -289,8 +304,8 @@ const formatTime = (time: string) => {
       .message-content {
         max-width: 70%;
         padding: 12px 16px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.04));
+        transition: var(--transition, all 0.28s ease-out);
 
         .message-text {
           word-wrap: break-word;
@@ -305,7 +320,7 @@ const formatTime = (time: string) => {
 
         .message-time {
           font-size: 12px;
-          color: #909399;
+          color: var(--color-text-weak, #64748b);
           margin-top: 4px;
         }
       }
@@ -313,9 +328,10 @@ const formatTime = (time: string) => {
   }
 
   .chat-input {
-    padding: 15px;
-    border-top: 1px solid #e4e7ed;
-    background-color: #fff;
+    padding: 16px;
+    border-top: 1px solid rgba(34, 211, 238, 0.12);
+    background: rgba(7, 11, 22, 0.92);
+    backdrop-filter: blur(14px);
   }
 }
 
