@@ -72,11 +72,12 @@ public class AssistantServiceImpl implements AssistantService {
             return response;
         }
         
-        // 3. RAG检索相关商品
+        // 3. RAG：商品 + 当前用户订单（订单类问题注入真实数据）
         List<com.mall.entity.Product> relatedProducts = ragService.searchProducts(request.getMessage(), 5);
-        
+        List<Map<String, Object>> relatedOrders = ragService.searchUserOrders(userId, request.getMessage(), 5);
+
         // 4. 构建提示词
-        String prompt = buildPrompt(request.getMessage(), relatedProducts, conversation.getId());
+        String prompt = buildPrompt(request.getMessage(), relatedProducts, relatedOrders, conversation.getId());
         
         // 5. 获取历史对话
         List<Map<String, String>> history = getHistoryMessages(conversation.getId(), 10);
@@ -119,11 +120,12 @@ public class AssistantServiceImpl implements AssistantService {
                     return;
                 }
                 
-                // 3. RAG检索相关商品
+                // 3. RAG：商品 + 当前用户订单
                 List<com.mall.entity.Product> relatedProducts = ragService.searchProducts(request.getMessage(), 5);
-                
+                List<Map<String, Object>> relatedOrders = ragService.searchUserOrders(userId, request.getMessage(), 5);
+
                 // 4. 构建提示词
-                String prompt = buildPrompt(request.getMessage(), relatedProducts, conversation.getId());
+                String prompt = buildPrompt(request.getMessage(), relatedProducts, relatedOrders, conversation.getId());
                 
                 // 5. 获取历史对话
                 List<Map<String, String>> history = getHistoryMessages(conversation.getId(), 10);
@@ -277,11 +279,16 @@ public class AssistantServiceImpl implements AssistantService {
     /**
      * 构建提示词
      */
-    private String buildPrompt(String userMessage, List<com.mall.entity.Product> products, Long conversationId) {
+    private String buildPrompt(String userMessage,
+                               List<com.mall.entity.Product> products,
+                               List<Map<String, Object>> orders,
+                               Long conversationId) {
         StringBuilder prompt = new StringBuilder();
         prompt.append("你是一个专业的【商城智能购物助手】，只回答与本商城购物相关的问题，")
-              .append("例如：商品咨询、选品对比、库存与价格、下单流程、支付方式、配送与物流、售后与退换货等。\n")
+              .append("例如：商品咨询、选品对比、库存与价格、下单流程、支付方式、配送与物流、售后与退换货、订单与物流查询等。\n")
               .append("如果用户的问题与商城无关，请礼貌说明“我目前只能回答本商城相关的问题”。\n\n");
+
+        appendOrderRagBlock(prompt, orders);
 
         prompt.append("以下是根据用户问题在商城中检索到的商品信息（如果有）：\n");
         if (products != null && !products.isEmpty()) {
@@ -305,10 +312,58 @@ public class AssistantServiceImpl implements AssistantService {
               .append("1）使用简体中文，语气友好、专业，分点或分段回答，提高可读性；\n")
               .append("2）当推荐上方列表中的商品时，请直接引用商品名称并结合价格做具体推荐理由；\n")
               .append("3）涉及下单/支付/配送/售后等流程时，请按照常见电商流程清晰分步骤说明；\n")
-              .append("4）如果信息不确定，不要胡乱编造，可以给出“当前系统暂不支持自动查询，请联系客服或在订单页查看”等安全回答；\n")
+              .append("4）若上方提供了「订单系统检索结果」，回答订单状态、物流进度、订单详情时必须严格依据其中的字段，不得编造订单号或第三方快递轨迹；若未提供订单数据且用户询问个人订单，可引导用户登录后重试或到「我的订单」查看；\n")
               .append("5）请按以下结构输出：先给“思路：”一段简短分析（2-4句），再给“回答：”给出完整可执行建议。\n");
-        
+
         return prompt.toString();
+    }
+
+    private void appendOrderRagBlock(StringBuilder prompt, List<Map<String, Object>> orders) {
+        if (orders == null || orders.isEmpty()) {
+            return;
+        }
+        prompt.append("【订单系统检索结果】（当前登录用户，来自数据库；无结果则本段不会出现）：\n");
+        int index = 1;
+        for (Map<String, Object> row : orders) {
+            if (row == null) {
+                continue;
+            }
+            if ("order_miss".equals(row.get("type"))) {
+                prompt.append(index++).append(". ")
+                        .append(row.get("hint") != null ? row.get("hint") : "未找到对应订单。")
+                        .append("\n");
+                continue;
+            }
+            if (!"order".equals(row.get("type"))) {
+                continue;
+            }
+            String amount = row.get("totalAmount") != null ? String.valueOf(row.get("totalAmount")) : "-";
+            prompt.append(String.format(
+                    "%d. 订单号：%s；应付/实付金额：%s 元；状态：%s（%s）；下单：%s；支付：%s；发货：%s；完成：%s。\n"
+                            + "   明细：%s\n"
+                            + "   履约说明：%s\n",
+                    index++,
+                    row.get("orderNo"),
+                    amount,
+                    row.get("status"),
+                    row.get("statusText"),
+                    emptyIfBlank(row.get("createTime")),
+                    emptyIfBlank(row.get("payTime")),
+                    emptyIfBlank(row.get("deliveryTime")),
+                    emptyIfBlank(row.get("completeTime")),
+                    row.get("itemsSummary") != null ? row.get("itemsSummary") : "",
+                    row.get("logisticsSummary") != null ? row.get("logisticsSummary") : ""
+            ));
+        }
+        prompt.append("\n");
+    }
+
+    private static String emptyIfBlank(Object o) {
+        if (o == null) {
+            return "—";
+        }
+        String s = String.valueOf(o).trim();
+        return s.isEmpty() ? "—" : s;
     }
     
     /**

@@ -18,6 +18,12 @@ public interface RAGService {
      * @return 相关商品列表
      */
     List<Product> searchProducts(String query, int topK);
+
+    /**
+     * 按当前登录用户检索与问题相关的订单（需传入 userId；未登录则返回空）。
+     * 用于智能助手结合真实订单数据回答物流、状态、订单号查询等。
+     */
+    List<Map<String, Object>> searchUserOrders(Long userId, String query, int topK);
     
     /**
      * 从指定数据源检索数据
