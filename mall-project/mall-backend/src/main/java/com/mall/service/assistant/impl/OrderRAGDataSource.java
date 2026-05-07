@@ -24,6 +24,7 @@ public class OrderRAGDataSource implements RAGDataSource {
 
     private static final Pattern ORD_NO_PATTERN = Pattern.compile("(?i)\\b(ORD\\d+)\\b");
     private static final Pattern LABELED_ORDER_NO = Pattern.compile("订单号\\s*[:：]?\\s*([A-Za-z0-9\\-]+)");
+    private static final Pattern ORD_PREFIX_BODY = Pattern.compile("(?i)^ORD\\d+$");
 
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -47,6 +48,8 @@ public class OrderRAGDataSource implements RAGDataSource {
         if (userId <= 0) {
             return Collections.emptyList();
         }
+        int safeTopK = topK <= 0 ? 5 : Math.min(topK, 50);
+
         String q = query == null ? "" : query.trim();
         if (!shouldRetrieveOrders(q)) {
             return Collections.emptyList();
@@ -56,26 +59,27 @@ public class OrderRAGDataSource implements RAGDataSource {
         if (!orderNos.isEmpty()) {
             List<Map<String, Object>> out = new ArrayList<>();
             for (String orderNo : orderNos) {
+                String normalizedNo = normalizeOrderNo(orderNo);
                 Order order = orderMapper.selectOne(
                         new LambdaQueryWrapper<Order>()
                                 .eq(Order::getUserId, userId)
-                                .eq(Order::getOrderNo, orderNo)
+                                .eq(Order::getOrderNo, normalizedNo)
                                 .last("LIMIT 1")
                 );
                 if (order != null) {
                     out.add(toOrderMap(order, userId));
                 } else {
-                    out.add(orderNotFoundMap(orderNo));
+                    out.add(orderNotFoundMap(normalizedNo));
                 }
             }
-            return out.stream().limit(topK).collect(Collectors.toList());
+            return out.stream().limit(safeTopK).collect(Collectors.toList());
         }
 
         List<Order> recent = orderMapper.selectList(
                 new LambdaQueryWrapper<Order>()
                         .eq(Order::getUserId, userId)
                         .orderByDesc(Order::getCreateTime)
-                        .last("LIMIT " + Math.max(1, topK))
+                        .last("LIMIT " + safeTopK)
         );
         return recent.stream().map(o -> toOrderMap(o, userId)).collect(Collectors.toList());
     }
@@ -101,15 +105,35 @@ public class OrderRAGDataSource implements RAGDataSource {
         return "当前用户订单：订单号、金额、状态、时间节点与物流阶段说明（基于订单状态推导，非第三方快递轨迹）";
     }
 
+    /**
+     * 与下单生成的订单号对齐（ORD 前缀大写）；其它格式保持原样便于精确匹配。
+     */
+    private static String normalizeOrderNo(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String s = raw.trim();
+        if (s.isEmpty()) {
+            return s;
+        }
+        if (ORD_PREFIX_BODY.matcher(s).matches()) {
+            return s.toUpperCase(Locale.ROOT);
+        }
+        return s;
+    }
+
     private LinkedHashSet<String> extractOrderNumbers(String query) {
         LinkedHashSet<String> set = new LinkedHashSet<>();
         Matcher m1 = ORD_NO_PATTERN.matcher(query);
         while (m1.find()) {
-            set.add(m1.group(1).toUpperCase(Locale.ROOT));
+            set.add(normalizeOrderNo(m1.group(1)));
         }
         Matcher m2 = LABELED_ORDER_NO.matcher(query);
         while (m2.find()) {
-            set.add(m2.group(1).trim());
+            String labeled = normalizeOrderNo(m2.group(1));
+            if (!labeled.isEmpty()) {
+                set.add(labeled);
+            }
         }
         return set;
     }

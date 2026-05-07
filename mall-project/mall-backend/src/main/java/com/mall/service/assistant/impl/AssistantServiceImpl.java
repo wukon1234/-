@@ -322,14 +322,14 @@ public class AssistantServiceImpl implements AssistantService {
         if (orders == null || orders.isEmpty()) {
             return;
         }
-        prompt.append("【订单系统检索结果】（当前登录用户，来自数据库；无结果则本段不会出现）：\n");
+        StringBuilder block = new StringBuilder();
         int index = 1;
         for (Map<String, Object> row : orders) {
             if (row == null) {
                 continue;
             }
             if ("order_miss".equals(row.get("type"))) {
-                prompt.append(index++).append(". ")
+                block.append(index++).append(". ")
                         .append(row.get("hint") != null ? row.get("hint") : "未找到对应订单。")
                         .append("\n");
                 continue;
@@ -338,15 +338,15 @@ public class AssistantServiceImpl implements AssistantService {
                 continue;
             }
             String amount = row.get("totalAmount") != null ? String.valueOf(row.get("totalAmount")) : "-";
-            prompt.append(String.format(
+            block.append(String.format(
                     "%d. 订单号：%s；应付/实付金额：%s 元；状态：%s（%s）；下单：%s；支付：%s；发货：%s；完成：%s。\n"
                             + "   明细：%s\n"
                             + "   履约说明：%s\n",
                     index++,
-                    row.get("orderNo"),
+                    emptyIfBlank(row.get("orderNo")),
                     amount,
-                    row.get("status"),
-                    row.get("statusText"),
+                    row.get("status") != null ? row.get("status") : "—",
+                    row.get("statusText") != null ? row.get("statusText") : "—",
                     emptyIfBlank(row.get("createTime")),
                     emptyIfBlank(row.get("payTime")),
                     emptyIfBlank(row.get("deliveryTime")),
@@ -355,6 +355,11 @@ public class AssistantServiceImpl implements AssistantService {
                     row.get("logisticsSummary") != null ? row.get("logisticsSummary") : ""
             ));
         }
+        if (block.length() == 0) {
+            return;
+        }
+        prompt.append("【订单系统检索结果】（当前登录用户，来自数据库）：\n");
+        prompt.append(block);
         prompt.append("\n");
     }
 
