@@ -64,9 +64,9 @@ const loadMessages = async (sessionId: string) => {
       // 转换消息格式，将role从数字转换为字符串
       messages.value = res.data.map((msg: any) => ({
         ...msg,
-        role: msg.role === 1 ? 'user' : 'assistant',
-        // 如果有relatedProducts，需要查询商品详情
-        relatedProducts: msg.relatedProducts || []
+        role: msg.role === 1 || msg.role === 'user' ? 'user' : 'assistant',
+        relatedProducts: msg.relatedProducts || [],
+        relatedOrders: msg.relatedOrders || []
       }))
     }
   } catch (error) {

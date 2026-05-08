@@ -19,4 +19,9 @@ public class ConversationMessage extends BaseEntity {
     private String content;
     
     private String relatedProducts;  // JSON格式，相关商品ID
+
+    /**
+     * JSON 数组：助手回复关联的订单摘要（order / order_miss），用于前端卡片展示
+     */
+    private String relatedOrders;
 }

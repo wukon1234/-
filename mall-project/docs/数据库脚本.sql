@@ -124,6 +124,7 @@ CREATE TABLE `conversation_message` (
   `role` TINYINT NOT NULL COMMENT '角色：1-用户 2-助手',
   `content` TEXT NOT NULL COMMENT '消息内容',
   `related_products` TEXT COMMENT '相关商品ID，JSON格式',
+  `related_orders` TEXT COMMENT '关联订单摘要JSON(order/order_miss)',
   `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   INDEX `idx_conversation_id` (`conversation_id`)

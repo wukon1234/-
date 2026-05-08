@@ -24,6 +24,10 @@
           <div class="message-text" v-html="formatMessage(msg.content)"></div>
           
           <!-- 商品推荐 -->
+          <OrderRagCards
+            v-if="msg.relatedOrders && msg.relatedOrders.length > 0"
+            :orders="msg.relatedOrders"
+          />
           <ProductRecommendation
             v-if="msg.relatedProducts && msg.relatedProducts.length > 0"
             :products="msg.relatedProducts"
@@ -67,6 +71,7 @@ import { computed, ref, nextTick, watch } from 'vue'
 import { User, ChatDotRound, Loading } from '@element-plus/icons-vue'
 import MessageInput from './MessageInput.vue'
 import ProductRecommendation from './ProductRecommendation.vue'
+import OrderRagCards from './OrderRagCards.vue'
 import { chat, chatStreamPost, type ChatRequest } from '@/api/assistant'
 import { ElMessage } from 'element-plus'
 
@@ -192,12 +197,14 @@ const handleStreamChat = async (request: ChatRequest) => {
         streamingMessage.value += chunk
         scrollToBottom()
       },
-      (_relatedProducts) => {
+      (_relatedProducts, _relatedOrders) => {
         if (abortController.signal.aborted) return
         streaming.value = false
         streamingMessage.value = ''
         currentStreamAbortController.value = null
-        emit('send') // 触发重新加载消息（包含商品推荐）
+        void _relatedProducts
+        void _relatedOrders
+        emit('send') // 触发重新加载消息（含商品与订单卡片）
       },
       (error: Error) => {
         if (abortController.signal.aborted) return

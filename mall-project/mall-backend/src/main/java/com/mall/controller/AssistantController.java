@@ -38,7 +38,7 @@ public class AssistantController {
             @RequestBody ChatRequest chatRequest) {
         Long userId = (Long) request.getAttribute("userId");
         if (userId == null) {
-            userId = 1L; // 默认用户ID
+            return Result.error(401, "请先登录后再使用智能助手");
         }
         log.info("用户 {} 发送消息: {}", userId, chatRequest.getMessage());
         ChatResponse response = assistantService.chat(userId, chatRequest);
@@ -55,7 +55,13 @@ public class AssistantController {
             @RequestBody ChatRequest chatRequest) {
         Long userId = (Long) httpRequest.getAttribute("userId");
         if (userId == null) {
-            userId = 1L; // 默认用户ID
+            SseEmitter denied = new SseEmitter(3000L);
+            try {
+                denied.send(SseEmitter.event().name("error").data("请先登录后再使用智能助手"));
+            } catch (IOException ignored) {
+            }
+            denied.complete();
+            return denied;
         }
 
         // 防止代理/网关缓冲，确保SSE尽快推送到前端
@@ -109,6 +115,21 @@ public class AssistantController {
                     log.error("发送商品推荐失败", e);
                 }
             }
+
+            @Override
+            public void onOrders(java.util.List<java.util.Map<String, Object>> orders) {
+                if (orders == null || orders.isEmpty()) {
+                    return;
+                }
+                try {
+                    java.util.Map<String, Object> payload = new java.util.HashMap<>();
+                    payload.put("orders", orders);
+                    emitter.send(SseEmitter.event().name("message")
+                            .data(com.alibaba.fastjson2.JSON.toJSONString(payload)));
+                } catch (IOException e) {
+                    log.error("发送订单摘要失败", e);
+                }
+            }
         });
         
         return emitter;
@@ -124,7 +145,7 @@ public class AssistantController {
             @RequestParam(defaultValue = "10") Integer size) {
         Long userId = (Long) request.getAttribute("userId");
         if (userId == null) {
-            userId = 1L;
+            return Result.error(401, "请先登录");
         }
         java.util.Map<String, Object> result = assistantService.getConversations(userId, page, size);
         return Result.success(result);
@@ -134,8 +155,12 @@ public class AssistantController {
      * 获取会话历史消息
      */
     @GetMapping("/conversation/{sessionId}/messages")
-    public Result<?> getMessages(@PathVariable String sessionId) {
-        java.util.List<com.mall.dto.MessageDTO> messages = assistantService.getMessages(sessionId);
+    public Result<?> getMessages(HttpServletRequest request, @PathVariable String sessionId) {
+        Long userId = (Long) request.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+        java.util.List<com.mall.dto.MessageDTO> messages = assistantService.getMessages(sessionId, userId);
         return Result.success(messages);
     }
     

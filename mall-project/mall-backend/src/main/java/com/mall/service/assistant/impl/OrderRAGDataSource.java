@@ -6,6 +6,7 @@ import com.mall.entity.OrderItem;
 import com.mall.mapper.OrderItemMapper;
 import com.mall.mapper.OrderMapper;
 import com.mall.service.assistant.DataSource;
+import com.mall.service.assistant.OrderChatIntent;
 import com.mall.service.assistant.RAGDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -51,7 +52,7 @@ public class OrderRAGDataSource implements RAGDataSource {
         int safeTopK = topK <= 0 ? 5 : Math.min(topK, 50);
 
         String q = query == null ? "" : query.trim();
-        if (!shouldRetrieveOrders(q)) {
+        if (!OrderChatIntent.shouldRetrieveOrderData(q)) {
             return Collections.emptyList();
         }
 
@@ -136,55 +137,6 @@ public class OrderRAGDataSource implements RAGDataSource {
             }
         }
         return set;
-    }
-
-    private boolean isOrderHowToQuestion(String q) {
-        return q.contains("如何下单") || q.contains("怎么下单") || q.contains("怎样下单")
-                || q.contains("下单流程") || q.contains("订单流程")
-                || q.matches("(?s).*(如何|怎么|怎样).{0,8}下单.*");
-    }
-
-    private boolean shouldRetrieveOrders(String q) {
-        if (q.isEmpty()) {
-            return false;
-        }
-        if (isOrderHowToQuestion(q)) {
-            return false;
-        }
-        if (ORD_NO_PATTERN.matcher(q).find()) {
-            return true;
-        }
-        if (LABELED_ORDER_NO.matcher(q).find()) {
-            return true;
-        }
-        if (q.contains("我的订单")) {
-            return true;
-        }
-        if (q.contains("订单状态")) {
-            return true;
-        }
-        if (q.contains("订单物流") || q.contains("物流") || q.contains("快递")) {
-            return true;
-        }
-        if (q.contains("发货")) {
-            return true;
-        }
-        if (q.contains("到哪了") || q.contains("到哪里了") || q.contains("到哪里")) {
-            return true;
-        }
-        if (q.contains("订单号")) {
-            return true;
-        }
-        if (q.contains("查订单") || q.contains("查一下订单")) {
-            return true;
-        }
-        if (q.contains("订单详情") && !q.contains("如何") && !q.contains("怎么")) {
-            return true;
-        }
-        if (q.contains("订单") && (q.contains("哪") || q.contains("状态"))) {
-            return true;
-        }
-        return false;
     }
 
     private Map<String, Object> orderNotFoundMap(String orderNo) {
