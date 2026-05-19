@@ -4,6 +4,7 @@ import com.mall.entity.Product;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 聊天响应DTO
@@ -25,6 +26,11 @@ public class ChatResponse {
      * 相关商品列表
      */
     private List<Product> relatedProducts;
+
+    /**
+     * 本轮检索到的用户订单摘要（供前端直接展示）
+     */
+    private List<Map<String, Object>> relatedOrders;
     
     /**
      * 消息ID

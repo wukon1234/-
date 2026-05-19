@@ -132,6 +132,37 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
     }
     
+    @Override
+    public boolean addProduct(Product product) {
+        boolean result = save(product);
+        log.info("添加商品: id={}, name={}, result={}", product.getId(), product.getName(), result);
+        return result;
+    }
+    
+    @Override
+    public boolean updateProduct(Product product) {
+        boolean result = updateById(product);
+        log.info("更新商品: id={}, name={}, result={}", product.getId(), product.getName(), result);
+        return result;
+    }
+    
+    @Override
+    public boolean deleteProduct(Long id) {
+        boolean result = removeById(id);
+        log.info("删除商品: id={}, result={}", id, result);
+        return result;
+    }
+    
+    @Override
+    public boolean updateProductStatus(Long id, Integer status) {
+        Product product = new Product();
+        product.setId(id);
+        product.setStatus(status);
+        boolean result = updateById(product);
+        log.info("更新商品状态: id={}, status={}, result={}", id, status, result);
+        return result;
+    }
+    
     /**
      * 构建商品文案提示词
      */

@@ -87,25 +87,32 @@ const formatTime = (time: string) => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: rgba(7, 11, 22, 0.82);
+  backdrop-filter: blur(14px);
+  border-radius: var(--radius-lg, 12px) 0 0 var(--radius-lg, 12px);
+  border: 1px solid rgba(34, 211, 238, 0.14);
+  border-right: none;
+  overflow: hidden;
 
   .list-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px;
-    border-bottom: 1px solid #e4e7ed;
+    padding: 16px;
+    border-bottom: 1px solid var(--color-border, #e5e7eb);
 
     h3 {
       margin: 0;
       font-size: 16px;
-      font-weight: 600;
+      font-weight: 700;
+      color: var(--color-text-bold, #222);
     }
   }
 
   .list-content {
     flex: 1;
     overflow-y: auto;
-    padding: 10px;
+    padding: 12px;
 
     .conversation-item {
       display: flex;
@@ -113,17 +120,23 @@ const formatTime = (time: string) => {
       justify-content: space-between;
       padding: 12px;
       margin-bottom: 8px;
-      border-radius: 8px;
+      border-radius: var(--radius-md, 8px);
       cursor: pointer;
-      transition: all 0.3s;
+      transition: var(--transition, all 0.28s ease-out);
+      border: 1px solid transparent;
 
       &:hover {
-        background-color: #f5f7fa;
+        background-color: rgba(34, 211, 238, 0.07);
       }
 
       &.active {
-        background-color: #e6f7ff;
-        border: 1px solid #91d5ff;
+        background: linear-gradient(
+          117deg,
+          rgba(34, 211, 238, 0.18) 0%,
+          rgba(74, 222, 128, 0.1) 100%
+        );
+        border: 1px solid rgba(74, 222, 128, 0.35);
+        box-shadow: 0 0 22px rgba(34, 211, 238, 0.1);
       }
 
       .item-content {
@@ -140,7 +153,7 @@ const formatTime = (time: string) => {
 
         .item-preview {
           font-size: 12px;
-          color: #909399;
+          color: var(--color-text-weak, #888);
           margin-bottom: 4px;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -149,7 +162,7 @@ const formatTime = (time: string) => {
 
         .item-time {
           font-size: 12px;
-          color: #c0c4cc;
+          color: var(--color-text-weak, #888);
         }
       }
     }

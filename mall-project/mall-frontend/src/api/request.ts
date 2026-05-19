@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import type { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
 
 // 创建axios实例
@@ -13,17 +13,15 @@ const service: AxiosInstance = axios.create({
 
 // 请求拦截器
 service.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
+  (config: InternalAxiosRequestConfig) => {
     // 可以在这里添加token等
     const token = localStorage.getItem('token')
-    if (token && config.headers) {
-      config.headers['Authorization'] = `Bearer ${token}`
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
     }
     
     // 临时添加userId（实际应该从token中获取）
-    if (config.headers) {
-      config.headers['userId'] = localStorage.getItem('userId') || '1'
-    }
+    config.headers.userId = localStorage.getItem('userId') || '1'
     
     return config
   },

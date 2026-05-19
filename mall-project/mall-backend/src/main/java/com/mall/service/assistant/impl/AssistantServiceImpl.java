@@ -8,11 +8,17 @@ import com.mall.dto.ConversationDTO;
 import com.mall.dto.MessageDTO;
 import com.mall.mapper.ConversationMapper;
 import com.mall.mapper.ConversationMessageMapper;
+import com.mall.mapper.AssistantSettingsMapper;
+import com.mall.mapper.AssistantTemplateMapper;
 import com.mall.entity.Conversation;
 import com.mall.entity.ConversationMessage;
+import com.mall.entity.AssistantSettings;
+import com.mall.entity.AssistantTemplate;
 import com.mall.service.assistant.AssistantService;
 import com.mall.service.assistant.LLMService;
+import com.mall.service.assistant.OrderChatIntent;
 import com.mall.service.assistant.RAGService;
+import com.alibaba.fastjson2.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -40,6 +47,12 @@ public class AssistantServiceImpl implements AssistantService {
     
     @Autowired
     private RAGService ragService;
+
+    @Autowired
+    private AssistantSettingsMapper assistantSettingsMapper;
+
+    @Autowired
+    private AssistantTemplateMapper assistantTemplateMapper;
     
     @Override
     public ChatResponse chat(Long userId, ChatRequest request) {
@@ -47,13 +60,27 @@ public class AssistantServiceImpl implements AssistantService {
         Conversation conversation = getOrCreateConversation(userId, request.getSessionId());
         
         // 2. 保存用户消息
-        saveMessage(conversation.getId(), 1, request.getMessage(), null);
+        saveMessage(conversation.getId(), 1, request.getMessage(), null, null);
+
+        // 2.1 按管理端配置处理（停用/模板回复）
+        String managedReply = resolveManagedReply(request.getMessage());
+        if (managedReply != null) {
+            Long messageId = saveMessage(conversation.getId(), 2, managedReply, null, null);
+            ChatResponse response = new ChatResponse();
+            response.setSessionId(conversation.getSessionId());
+            response.setMessage(managedReply);
+            response.setRelatedProducts(Collections.emptyList());
+            response.setRelatedOrders(Collections.emptyList());
+            response.setMessageId(messageId);
+            return response;
+        }
         
-        // 3. RAG检索相关商品
+        // 3. RAG：商品 + 当前用户订单（订单类问题注入真实数据）
         List<com.mall.entity.Product> relatedProducts = ragService.searchProducts(request.getMessage(), 5);
-        
+        List<Map<String, Object>> relatedOrders = ragService.searchUserOrders(userId, request.getMessage(), 5);
+
         // 4. 构建提示词
-        String prompt = buildPrompt(request.getMessage(), relatedProducts, conversation.getId());
+        String prompt = buildPrompt(request.getMessage(), relatedProducts, relatedOrders, conversation.getId());
         
         // 5. 获取历史对话
         List<Map<String, String>> history = getHistoryMessages(conversation.getId(), 10);
@@ -65,13 +92,14 @@ public class AssistantServiceImpl implements AssistantService {
         List<Long> productIds = extractProductIds(relatedProducts);
         
         // 8. 保存助手回复
-        Long messageId = saveMessage(conversation.getId(), 2, assistantReply, productIds);
+        Long messageId = saveMessage(conversation.getId(), 2, assistantReply, productIds, relatedOrders);
         
         // 9. 构建响应
         ChatResponse response = new ChatResponse();
         response.setSessionId(conversation.getSessionId());
         response.setMessage(assistantReply);
         response.setRelatedProducts(relatedProducts);
+        response.setRelatedOrders(relatedOrders != null ? relatedOrders : Collections.emptyList());
         response.setMessageId(messageId);
         
         return response;
@@ -85,13 +113,23 @@ public class AssistantServiceImpl implements AssistantService {
                 Conversation conversation = getOrCreateConversation(userId, request.getSessionId());
                 
                 // 2. 保存用户消息
-                saveMessage(conversation.getId(), 1, request.getMessage(), null);
+                saveMessage(conversation.getId(), 1, request.getMessage(), null, null);
+
+                // 2.1 按管理端配置处理（停用/模板回复）
+                String managedReply = resolveManagedReply(request.getMessage());
+                if (managedReply != null) {
+                    streamBySemanticUnits(managedReply, callback);
+                    saveMessage(conversation.getId(), 2, managedReply, null, null);
+                    callback.onComplete();
+                    return;
+                }
                 
-                // 3. RAG检索相关商品
+                // 3. RAG：商品 + 当前用户订单
                 List<com.mall.entity.Product> relatedProducts = ragService.searchProducts(request.getMessage(), 5);
-                
+                List<Map<String, Object>> relatedOrders = ragService.searchUserOrders(userId, request.getMessage(), 5);
+
                 // 4. 构建提示词
-                String prompt = buildPrompt(request.getMessage(), relatedProducts, conversation.getId());
+                String prompt = buildPrompt(request.getMessage(), relatedProducts, relatedOrders, conversation.getId());
                 
                 // 5. 获取历史对话
                 List<Map<String, String>> history = getHistoryMessages(conversation.getId(), 10);
@@ -101,8 +139,12 @@ public class AssistantServiceImpl implements AssistantService {
                 llmService.chatStream(prompt, history, new LLMService.StreamCallback() {
                     @Override
                     public void onMessage(String chunk) {
+                        if (chunk == null || chunk.isEmpty()) {
+                            return;
+                        }
                         fullResponse.append(chunk);
-                        callback.onMessage(chunk);
+                        // 语义单元推送：中文按单字、英文按整词，避免把英文词拆碎
+                        streamBySemanticUnits(chunk, callback);
                     }
                     
                     @Override
@@ -110,8 +152,11 @@ public class AssistantServiceImpl implements AssistantService {
                         // 7. 保存完整回复
                         String assistantReply = fullResponse.toString();
                         List<Long> productIds = extractProductIds(relatedProducts);
-                        saveMessage(conversation.getId(), 2, assistantReply, productIds);
-                        
+                        saveMessage(conversation.getId(), 2, assistantReply, productIds, relatedOrders);
+
+                        if (relatedOrders != null && !relatedOrders.isEmpty()) {
+                            callback.onOrders(relatedOrders);
+                        }
                         // 8. 发送商品推荐信息
                         if (relatedProducts != null && !relatedProducts.isEmpty()) {
                             callback.onProducts(relatedProducts);
@@ -139,6 +184,7 @@ public class AssistantServiceImpl implements AssistantService {
             Conversation conversation = conversationMapper.selectOne(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Conversation>()
                     .eq(Conversation::getSessionId, sessionId)
+                    .eq(Conversation::getUserId, userId)
             );
             if (conversation != null) {
                 return conversation;
@@ -160,13 +206,17 @@ public class AssistantServiceImpl implements AssistantService {
     /**
      * 保存消息
      */
-    private Long saveMessage(Long conversationId, Integer role, String content, List<Long> productIds) {
+    private Long saveMessage(Long conversationId, Integer role, String content,
+                             List<Long> productIds, List<Map<String, Object>> relatedOrders) {
         ConversationMessage message = new ConversationMessage();
         message.setConversationId(conversationId);
         message.setRole(role);
         message.setContent(content);
         if (productIds != null && !productIds.isEmpty()) {
             message.setRelatedProducts(com.alibaba.fastjson2.JSON.toJSONString(productIds));
+        }
+        if (relatedOrders != null && !relatedOrders.isEmpty()) {
+            message.setRelatedOrders(com.alibaba.fastjson2.JSON.toJSONString(relatedOrders));
         }
         message.setCreateTime(LocalDateTime.now());
         conversationMessageMapper.insert(message);
@@ -200,15 +250,61 @@ public class AssistantServiceImpl implements AssistantService {
         if (s.length() <= maxLen) return s;
         return s.substring(0, maxLen) + "...";
     }
+
+    /**
+     * 根据管理端配置决定是否使用模板回复
+     * @return 非空表示直接返回该回复；空表示继续走智能回复链路
+     */
+    private String resolveManagedReply(String userMessage) {
+        AssistantSettings settings = assistantSettingsMapper.selectOne(
+                new LambdaQueryWrapper<AssistantSettings>()
+                        .orderByDesc(AssistantSettings::getId)
+                        .last("LIMIT 1")
+        );
+        if (settings != null && settings.getEnabled() != null && settings.getEnabled() == 0) {
+            return "当前智能助手已暂停服务，请稍后再试。";
+        }
+        if (settings == null || settings.getResponseMode() == null
+                || !"template".equalsIgnoreCase(settings.getResponseMode())) {
+            return null;
+        }
+
+        String input = userMessage == null ? "" : userMessage.trim();
+        if (OrderChatIntent.shouldRetrieveOrderData(input)) {
+            return null;
+        }
+
+        List<AssistantTemplate> templates = assistantTemplateMapper.selectList(
+                new LambdaQueryWrapper<AssistantTemplate>().orderByDesc(AssistantTemplate::getId)
+        );
+        if (templates == null || templates.isEmpty()) {
+            return null;
+        }
+
+        for (AssistantTemplate template : templates) {
+            if (template.getKeyword() != null
+                    && !template.getKeyword().trim().isEmpty()
+                    && input.contains(template.getKeyword().trim())) {
+                return template.getResponse();
+            }
+        }
+        // 模板模式下未命中关键词时，自动回退智能回复链路
+        return null;
+    }
     
     /**
      * 构建提示词
      */
-    private String buildPrompt(String userMessage, List<com.mall.entity.Product> products, Long conversationId) {
+    private String buildPrompt(String userMessage,
+                               List<com.mall.entity.Product> products,
+                               List<Map<String, Object>> orders,
+                               Long conversationId) {
         StringBuilder prompt = new StringBuilder();
         prompt.append("你是一个专业的【商城智能购物助手】，只回答与本商城购物相关的问题，")
-              .append("例如：商品咨询、选品对比、库存与价格、下单流程、支付方式、配送与物流、售后与退换货等。\n")
+              .append("例如：商品咨询、选品对比、库存与价格、下单流程、支付方式、配送与物流、售后与退换货、订单与物流查询等。\n")
               .append("如果用户的问题与商城无关，请礼貌说明“我目前只能回答本商城相关的问题”。\n\n");
+
+        appendOrderRagBlock(prompt, orders);
 
         prompt.append("以下是根据用户问题在商城中检索到的商品信息（如果有）：\n");
         if (products != null && !products.isEmpty()) {
@@ -232,9 +328,63 @@ public class AssistantServiceImpl implements AssistantService {
               .append("1）使用简体中文，语气友好、专业，分点或分段回答，提高可读性；\n")
               .append("2）当推荐上方列表中的商品时，请直接引用商品名称并结合价格做具体推荐理由；\n")
               .append("3）涉及下单/支付/配送/售后等流程时，请按照常见电商流程清晰分步骤说明；\n")
-              .append("4）如果信息不确定，不要胡乱编造，可以给出“当前系统暂不支持自动查询，请联系客服或在订单页查看”等安全回答。\n");
-        
+              .append("4）若上方提供了「订单系统检索结果」，回答订单状态、物流进度、订单详情时必须严格依据其中的字段，不得编造订单号或第三方快递轨迹；若未提供订单数据且用户询问个人订单，可引导用户登录后重试或到「我的订单」查看；\n")
+              .append("5）请按以下结构输出：先给“思路：”一段简短分析（2-4句），再给“回答：”给出完整可执行建议。\n");
+
         return prompt.toString();
+    }
+
+    private void appendOrderRagBlock(StringBuilder prompt, List<Map<String, Object>> orders) {
+        if (orders == null || orders.isEmpty()) {
+            return;
+        }
+        StringBuilder block = new StringBuilder();
+        int index = 1;
+        for (Map<String, Object> row : orders) {
+            if (row == null) {
+                continue;
+            }
+            if ("order_miss".equals(row.get("type"))) {
+                block.append(index++).append(". ")
+                        .append(row.get("hint") != null ? row.get("hint") : "未找到对应订单。")
+                        .append("\n");
+                continue;
+            }
+            if (!"order".equals(row.get("type"))) {
+                continue;
+            }
+            String amount = row.get("totalAmount") != null ? String.valueOf(row.get("totalAmount")) : "-";
+            block.append(String.format(
+                    "%d. 订单号：%s；应付/实付金额：%s 元；状态：%s（%s）；下单：%s；支付：%s；发货：%s；完成：%s。\n"
+                            + "   明细：%s\n"
+                            + "   履约说明：%s\n",
+                    index++,
+                    emptyIfBlank(row.get("orderNo")),
+                    amount,
+                    row.get("status") != null ? row.get("status") : "—",
+                    row.get("statusText") != null ? row.get("statusText") : "—",
+                    emptyIfBlank(row.get("createTime")),
+                    emptyIfBlank(row.get("payTime")),
+                    emptyIfBlank(row.get("deliveryTime")),
+                    emptyIfBlank(row.get("completeTime")),
+                    row.get("itemsSummary") != null ? row.get("itemsSummary") : "",
+                    row.get("logisticsSummary") != null ? row.get("logisticsSummary") : ""
+            ));
+        }
+        if (block.length() == 0) {
+            return;
+        }
+        prompt.append("【订单系统检索结果】（当前登录用户，来自数据库）：\n");
+        prompt.append(block);
+        prompt.append("【重要】你必须在「回答：」中逐条写出上述订单的订单号、状态、金额与履约说明；禁止仅用「请到我的订单页查看」等话术代替具体数据。\n\n");
+    }
+
+    private static String emptyIfBlank(Object o) {
+        if (o == null) {
+            return "—";
+        }
+        String s = String.valueOf(o).trim();
+        return s.isEmpty() ? "—" : s;
     }
     
     /**
@@ -272,6 +422,47 @@ public class AssistantServiceImpl implements AssistantService {
             }
         }
         return ids;
+    }
+
+    private void streamBySemanticUnits(String text, StreamCallback callback) {
+        StringBuilder asciiWord = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (isAsciiWordChar(c)) {
+                asciiWord.append(c);
+                continue;
+            }
+            flushAsciiWord(asciiWord, callback);
+            callback.onMessage(String.valueOf(c));
+            sleepRandomTypingDelay();
+        }
+        flushAsciiWord(asciiWord, callback);
+    }
+
+    private void flushAsciiWord(StringBuilder asciiWord, StreamCallback callback) {
+        if (asciiWord.length() == 0) {
+            return;
+        }
+        callback.onMessage(asciiWord.toString());
+        asciiWord.setLength(0);
+        sleepRandomTypingDelay();
+    }
+
+    private boolean isAsciiWordChar(char c) {
+        return (c >= 'a' && c <= 'z')
+                || (c >= 'A' && c <= 'Z')
+                || (c >= '0' && c <= '9')
+                || c == '_'
+                || c == '-';
+    }
+
+    private void sleepRandomTypingDelay() {
+        try {
+            Thread.sleep(ThreadLocalRandom.current().nextInt(60, 101));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("逐字流式输出被中断");
+        }
     }
     
     @Override
@@ -314,7 +505,7 @@ public class AssistantServiceImpl implements AssistantService {
     }
     
     @Override
-    public List<MessageDTO> getMessages(String sessionId) {
+    public List<MessageDTO> getMessages(String sessionId, Long userId) {
         // 根据sessionId查询会话
         Conversation conversation = conversationMapper.selectOne(
             new LambdaQueryWrapper<Conversation>()
@@ -322,6 +513,10 @@ public class AssistantServiceImpl implements AssistantService {
         );
         
         if (conversation == null) {
+            return new ArrayList<>();
+        }
+        if (userId != null && conversation.getUserId() != null && !conversation.getUserId().equals(userId)) {
+            log.warn("拒绝跨用户读取会话消息: sessionId={}, reqUser={}, owner={}", sessionId, userId, conversation.getUserId());
             return new ArrayList<>();
         }
         
@@ -345,6 +540,17 @@ public class AssistantServiceImpl implements AssistantService {
                     dto.setRelatedProducts(productIds);
                 } catch (Exception e) {
                     log.warn("解析相关商品ID失败: {}", message.getRelatedProducts());
+                }
+            }
+
+            if (message.getRelatedOrders() != null && !message.getRelatedOrders().isEmpty()) {
+                try {
+                    List<Map<String, Object>> orders = com.alibaba.fastjson2.JSON.parseObject(
+                            message.getRelatedOrders(),
+                            new TypeReference<List<Map<String, Object>>>() { });
+                    dto.setRelatedOrders(orders);
+                } catch (Exception e) {
+                    log.warn("解析关联订单失败: {}", message.getRelatedOrders());
                 }
             }
             

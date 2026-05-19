@@ -5,10 +5,25 @@ export interface ChatRequest {
   message: string
 }
 
+export interface RelatedOrderRow {
+  type: string
+  orderNo?: string
+  statusText?: string
+  totalAmount?: number | string
+  createTime?: string
+  payTime?: string
+  deliveryTime?: string
+  itemsSummary?: string
+  logisticsSummary?: string
+  hint?: string
+  [key: string]: unknown
+}
+
 export interface ChatResponse {
   sessionId: string
   message: string
   relatedProducts?: Product[]
+  relatedOrders?: RelatedOrderRow[]
   messageId: number
 }
 
@@ -26,6 +41,22 @@ export interface Conversation {
   title: string
   lastMessage?: string
   updateTime: string
+}
+
+export interface AssistantSettings {
+  id?: number
+  name: string
+  enabled: number
+  responseMode: string
+  timeout: number
+}
+
+export interface AssistantTemplate {
+  id: number
+  keyword: string
+  response: string
+  createTime?: string
+  updateTime?: string
 }
 
 /**
@@ -53,7 +84,7 @@ export const chatStream = (data: ChatRequest, onMessage: (chunk: string) => void
     }
   })
   
-  eventSource.addEventListener('error', (error) => {
+  eventSource.addEventListener('error', (_error) => {
     eventSource.close()
     onError(new Error('流式对话连接错误'))
   })
@@ -69,8 +100,9 @@ export const chatStream = (data: ChatRequest, onMessage: (chunk: string) => void
 export const chatStreamPost = async (
   data: ChatRequest,
   onMessage: (chunk: string) => void,
-  onDone: (relatedProducts?: Product[]) => void,
-  onError: (error: Error) => void
+  onDone: (relatedProducts?: Product[], relatedOrders?: RelatedOrderRow[]) => void,
+  onError: (error: Error) => void,
+  abortController?: AbortController
 ) => {
   try {
     const token = localStorage.getItem('token')
@@ -83,7 +115,8 @@ export const chatStreamPost = async (
         'Authorization': token ? `Bearer ${token}` : '',
         'userId': userId
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      signal: abortController?.signal
     })
 
     if (!response.ok) {
@@ -99,12 +132,13 @@ export const chatStreamPost = async (
 
     let buffer = ''
     let relatedProducts: Product[] | undefined
-    
+    let relatedOrders: RelatedOrderRow[] | undefined
+
     while (true) {
       const { done, value } = await reader.read()
       
       if (done) {
-        onDone(relatedProducts)
+        onDone(relatedProducts, relatedOrders)
         break
       }
 
@@ -113,10 +147,11 @@ export const chatStreamPost = async (
       buffer = lines.pop() || ''
 
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const messageData = line.slice(6).trim()
-          if (messageData === '[DONE]') {
-            onDone(relatedProducts)
+        if (line.startsWith('data:')) {
+          // 不做trim，避免把模型输出中的空格吃掉
+          const messageData = line.slice(5).replace(/^\s/, '')
+          if (messageData.trim() === '[DONE]') {
+            onDone(relatedProducts, relatedOrders)
             return
           }
           
@@ -125,6 +160,9 @@ export const chatStreamPost = async (
             const jsonData = JSON.parse(messageData)
             if (jsonData.products) {
               relatedProducts = jsonData.products
+            }
+            if (jsonData.orders) {
+              relatedOrders = jsonData.orders
             }
             if (jsonData.chunk) {
               onMessage(jsonData.chunk)
@@ -165,9 +203,11 @@ export const getConversations = (page = 1, size = 10) => {
 export const getMessages = (sessionId: string) => {
   return request.get<Array<{
     id: number
-    role: 'user' | 'assistant'
+    role: number | 'user' | 'assistant'
     content: string
     createTime: string
+    relatedProducts?: number[]
+    relatedOrders?: RelatedOrderRow[]
   }>>(`/assistant/conversation/${sessionId}/messages`)
 }
 
@@ -176,4 +216,46 @@ export const getMessages = (sessionId: string) => {
  */
 export const deleteConversation = (sessionId: string) => {
   return request.delete(`/assistant/conversation/${sessionId}`)
+}
+
+/**
+ * 管理端：获取助手设置
+ */
+export const getAdminAssistantSettings = () => {
+  return request.get<AssistantSettings>('/admin/assistant/settings')
+}
+
+/**
+ * 管理端：保存助手设置
+ */
+export const updateAdminAssistantSettings = (data: AssistantSettings) => {
+  return request.put<AssistantSettings>('/admin/assistant/settings', data)
+}
+
+/**
+ * 管理端：获取模板列表
+ */
+export const getAdminAssistantTemplates = () => {
+  return request.get<AssistantTemplate[]>('/admin/assistant/templates')
+}
+
+/**
+ * 管理端：新增模板
+ */
+export const createAdminAssistantTemplate = (data: { keyword: string; response: string }) => {
+  return request.post<AssistantTemplate>('/admin/assistant/templates', data)
+}
+
+/**
+ * 管理端：更新模板
+ */
+export const updateAdminAssistantTemplate = (id: number, data: { keyword: string; response: string }) => {
+  return request.put<AssistantTemplate>(`/admin/assistant/templates/${id}`, data)
+}
+
+/**
+ * 管理端：删除模板
+ */
+export const deleteAdminAssistantTemplate = (id: number) => {
+  return request.delete(`/admin/assistant/templates/${id}`)
 }

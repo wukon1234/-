@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { useUserStore } from '@/store/user'
 
 const routes: Array<RouteRecordRaw> = [
   // 前端用户路由
@@ -70,6 +69,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'Assistant',
         component: () => import('@/views/Assistant.vue'),
         meta: { title: '智能助手', requiresAuth: true }
+      },
+      {
+        path: 'favorites',
+        name: 'FavoriteList',
+        component: () => import('@/views/FavoriteList.vue'),
+        meta: { title: '我的收藏', requiresAuth: true }
       }
     ]
   },
@@ -113,10 +118,22 @@ const routes: Array<RouteRecordRaw> = [
         meta: { title: '订单列表', requiresAuth: true }
       },
       {
+        path: 'orders/analysis',
+        name: 'AdminOrderAnalysis',
+        component: () => import('@/views/admin/OrderAnalysis.vue'),
+        meta: { title: '订单分析', requiresAuth: true }
+      },
+      {
         path: 'users',
         name: 'AdminUserList',
         component: () => import('@/views/admin/UserList.vue'),
         meta: { title: '用户列表', requiresAuth: true }
+      },
+      {
+        path: 'assistant',
+        name: 'AdminAssistant',
+        component: () => import('@/views/admin/AdminAssistant.vue'),
+        meta: { title: '智能助手管理', requiresAuth: true }
       }
     ]
   }
@@ -128,16 +145,22 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   // 设置页面标题
   document.title = `${to.meta.title || '商城智能助手系统'} - 商城智能助手系统`
   
-  const token = localStorage.getItem('token')
+  const rawToken = localStorage.getItem('token')
+  const token = rawToken && rawToken !== 'null' && rawToken !== 'undefined' ? rawToken : ''
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth === true)
   
   // 如果需要认证但没有token，重定向到登录页面
   if (requiresAuth && !token) {
+    if (to.path.startsWith('/admin')) {
+      next('/admin/login')
+      return
+    }
     next('/login')
+    return
   } else {
     next()
   }

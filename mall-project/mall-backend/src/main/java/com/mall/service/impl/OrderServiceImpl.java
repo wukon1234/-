@@ -123,6 +123,9 @@ public class OrderServiceImpl implements OrderService {
             }
         }
         order.setAddressId(addressId);
+        order.setPayTime(null);
+        order.setDeliveryTime(null);
+        order.setCompleteTime(null);
         order.setCreateTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
         orderMapper.insert(order);
@@ -185,6 +188,9 @@ public class OrderServiceImpl implements OrderService {
             dto.setAddressId(order.getAddressId());
             dto.setCreateTime(order.getCreateTime());
             dto.setUpdateTime(order.getUpdateTime());
+            dto.setPayTime(order.getPayTime());
+            dto.setDeliveryTime(order.getDeliveryTime());
+            dto.setCompleteTime(order.getCompleteTime());
 
             // 地址信息（可选）
             if (order.getAddressId() != null) {
@@ -211,7 +217,7 @@ public class OrderServiceImpl implements OrderService {
             List<OrderItemDTO> itemDTOs = orderItems.stream().map(item -> {
                 OrderItemDTO itemDTO = new OrderItemDTO();
                 BeanUtils.copyProperties(item, itemDTO);
-                itemDTO.setSubtotal(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+                itemDTO.setSubtotal(calculateSubtotal(item.getPrice(), item.getQuantity()));
                 return itemDTO;
             }).collect(Collectors.toList());
             
@@ -243,6 +249,9 @@ public class OrderServiceImpl implements OrderService {
         dto.setAddressId(order.getAddressId());
         dto.setCreateTime(order.getCreateTime());
         dto.setUpdateTime(order.getUpdateTime());
+        dto.setPayTime(order.getPayTime());
+        dto.setDeliveryTime(order.getDeliveryTime());
+        dto.setCompleteTime(order.getCompleteTime());
 
         if (order.getAddressId() != null) {
             Address address = addressMapper.selectById(order.getAddressId());
@@ -268,7 +277,7 @@ public class OrderServiceImpl implements OrderService {
         List<OrderItemDTO> itemDTOs = orderItems.stream().map(item -> {
             OrderItemDTO itemDTO = new OrderItemDTO();
             BeanUtils.copyProperties(item, itemDTO);
-            itemDTO.setSubtotal(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+            itemDTO.setSubtotal(calculateSubtotal(item.getPrice(), item.getQuantity()));
             return itemDTO;
         }).collect(Collectors.toList());
         
@@ -278,6 +287,12 @@ public class OrderServiceImpl implements OrderService {
 
     private String nullSafe(String s) {
         return s == null ? "" : s;
+    }
+
+    private BigDecimal calculateSubtotal(BigDecimal price, Integer quantity) {
+        BigDecimal safePrice = price == null ? BigDecimal.ZERO : price;
+        int safeQuantity = quantity == null ? 0 : quantity;
+        return safePrice.multiply(BigDecimal.valueOf(safeQuantity));
     }
     
     @Override
@@ -343,6 +358,7 @@ public class OrderServiceImpl implements OrderService {
         
         // 更新订单状态
         order.setStatus(1);  // 已支付
+        order.setPayTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
         orderMapper.updateById(order);
         

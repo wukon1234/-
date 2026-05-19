@@ -93,11 +93,12 @@ import { getDefaultAddress } from '@/api/address'
 
 const router = useRouter()
 
-const cartList = ref<CartItem[]>([])
+type CartItemWithSelected = CartItem & { selected: boolean }
+const cartList = ref<CartItemWithSelected[]>([])
 const selectAll = ref(false)
 
 // 为每个购物车项添加selected属性
-const initCartList = (items: CartItem[]) => {
+const initCartList = (items: CartItem[]): CartItemWithSelected[] => {
   return items.map(item => ({
     ...item,
     selected: false
@@ -132,12 +133,12 @@ const handleSelectAll = (checked: boolean) => {
 }
 
 // 单个商品选择
-const handleItemSelect = (item: CartItem) => {
-  selectAll.value = cartList.value.every(item => item.selected)
+const handleItemSelect = (_item: CartItemWithSelected) => {
+  selectAll.value = cartList.value.every(cartItem => cartItem.selected)
 }
 
 // 更新商品数量
-const handleQuantityChange = async (item: CartItem) => {
+const handleQuantityChange = async (item: CartItemWithSelected) => {
   try {
     await updateCartQuantity(item.id, { quantity: item.quantity })
     // 更新小计
@@ -151,7 +152,7 @@ const handleQuantityChange = async (item: CartItem) => {
 }
 
 // 删除商品
-const handleDelete = async (item: CartItem) => {
+const handleDelete = async (item: CartItemWithSelected) => {
   try {
     await ElMessageBox.confirm('确定要删除该商品吗？', '提示', {
       confirmButtonText: '确定',
@@ -230,11 +231,17 @@ onMounted(() => {
 .cart {
   h2 {
     margin-bottom: 20px;
-    color: #333;
+    color: var(--color-text-bold, #222);
+    font-size: 24px;
+    font-weight: 700;
   }
 }
 
 .cart-card {
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--color-border, #e5e7eb);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.04));
+
   .cart-header {
     display: flex;
     justify-content: space-between;
@@ -252,7 +259,7 @@ onMounted(() => {
       display: flex;
       align-items: center;
       padding: 20px 0;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--color-border, #e5e7eb);
       
       &:last-child {
         border-bottom: none;
@@ -263,7 +270,7 @@ onMounted(() => {
         height: 120px;
         margin: 0 20px;
         cursor: pointer;
-        border-radius: 4px;
+        border-radius: var(--radius-md, 8px);
         overflow: hidden;
         
         .image-slot {
@@ -288,7 +295,7 @@ onMounted(() => {
           color: #333;
           
           &:hover {
-            color: #409eff;
+            color: var(--color-accent-cyan, #22d3ee);
           }
         }
         
@@ -307,7 +314,7 @@ onMounted(() => {
           gap: 20px;
           
           .price {
-            color: #f56c6c;
+            color: var(--color-danger, #ff4d4f);
             font-size: 18px;
             font-weight: bold;
           }
@@ -335,7 +342,7 @@ onMounted(() => {
         }
         
         .subtotal-value {
-          color: #f56c6c;
+          color: var(--color-danger, #ff4d4f);
           font-size: 16px;
           font-weight: bold;
           margin-left: 10px;
@@ -350,13 +357,13 @@ onMounted(() => {
     align-items: center;
     margin-top: 20px;
     padding-top: 20px;
-    border-top: 2px solid #f0f0f0;
+    border-top: 1px solid var(--color-border, #e5e7eb);
     
     .total-info {
       font-size: 16px;
       
       .total-price {
-        color: #f56c6c;
+        color: var(--color-danger, #ff4d4f);
         font-size: 24px;
         margin-left: 10px;
       }

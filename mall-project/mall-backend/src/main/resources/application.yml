@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8087
   servlet:
     context-path: /api
 
@@ -65,7 +65,7 @@ logging:
 
 # JWT配置
 jwt:
-  secret: mall-secret-key-2024
+  secret: mall-secret-key-2024-secure-token-key
   expiration: 86400000  # 24小时
 
 # 大模型配置
@@ -79,7 +79,7 @@ llm:
   # 通义千问配置（可选）
   qwen:
     api-key: sk-1a4df20be5cb44e0ab482e77f7b713fe
-    base-url: https://dashscope.aliyuncs.com/api
+    base-url: https://dashscope.aliyuncs.com/api/v1
   
   # 默认使用的大模型提供商：openai, qwen, wenxin, spark
   provider: qwen
@@ -137,6 +137,6 @@ rag:
   # - vector: 语义检索（需要 embedding.provider=openai + Chroma）
   search-mode: keyword
   # 是否开启向量检索能力（开启后仍可用search-mode控制是否使用）
-  vector-enabled: false
+  vector-enabled: true
   # 启动时是否自动同步商品向量（毕设数据量小可开启）
-  vector-auto-sync: false
+  vector-auto-sync: true

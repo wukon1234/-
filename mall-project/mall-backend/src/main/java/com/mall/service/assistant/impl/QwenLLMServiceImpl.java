@@ -47,10 +47,10 @@ public class QwenLLMServiceImpl implements LLMService {
         try {
             log.info("开始调用通义千问API");
             log.info("API密钥: {}", apiKey.substring(0, 5) + "..." + apiKey.substring(apiKey.length() - 5));
-            log.info("API端点: {}", baseUrl + "/v1/services/aigc/text-generation/generation");
+            log.info("API端点: {}", baseUrl + "/services/aigc/text-generation/generation");
             
             CloseableHttpClient httpClient = HttpClients.createDefault();
-            HttpPost httpPost = new HttpPost(baseUrl + "/v1/services/aigc/text-generation/generation");
+            HttpPost httpPost = new HttpPost(baseUrl + "/services/aigc/text-generation/generation");
             
             // 构建请求头
             httpPost.setHeader("Content-Type", "application/json");
@@ -128,10 +128,10 @@ public class QwenLLMServiceImpl implements LLMService {
             try {
                 log.info("开始调用通义千问流式API");
                 log.info("API密钥: {}", apiKey.substring(0, 5) + "..." + apiKey.substring(apiKey.length() - 5));
-                log.info("API端点: {}", baseUrl + "/v1/services/aigc/text-generation/generation");
+                log.info("API端点: {}", baseUrl + "/services/aigc/text-generation/generation");
                 
                 httpClient = HttpClients.createDefault();
-                HttpPost httpPost = new HttpPost(baseUrl + "/v1/services/aigc/text-generation/generation");
+                HttpPost httpPost = new HttpPost(baseUrl + "/services/aigc/text-generation/generation");
                 
                 // 构建请求头
                 httpPost.setHeader("Content-Type", "application/json");
@@ -174,11 +174,19 @@ public class QwenLLMServiceImpl implements LLMService {
                         StringBuilder fullResponse = new StringBuilder();
                         
                         while ((line = reader.readLine()) != null) {
+                            line = line.trim();
                             if (line.isEmpty()) {
                                 continue;
                             }
-                            
-                            // 处理通义千问的流式响应格式
+
+                            if (line.startsWith("data:")) {
+                                line = line.substring(5).trim();
+                            }
+                            if ("[DONE]".equals(line)) {
+                                break;
+                            }
+
+                            // 处理通义千问流式响应（兼容SSE data行）
                             try {
                                 Map<String, Object> result = JSON.parseObject(line, Map.class);
                                 Map<String, Object> output = (Map<String, Object>) result.get("output");

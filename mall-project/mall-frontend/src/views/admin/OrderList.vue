@@ -3,7 +3,7 @@
     <div class="page-header">
       <h2 class="page-title">订单管理</h2>
     </div>
-    
+
     <el-card shadow="hover" class="content-card">
       <div class="search-bar">
         <el-input
@@ -16,35 +16,39 @@
             <el-button @click="handleSearch"><el-icon><Search /></el-icon></el-button>
           </template>
         </el-input>
-        
+
         <el-input
           v-model="searchForm.userName"
           placeholder="请输入用户名"
           style="width: 200px; margin-right: 10px"
           clearable
         />
-        
+
         <el-select
           v-model="searchForm.status"
           placeholder="请选择订单状态"
           style="width: 150px; margin-right: 10px"
           clearable
         >
-          <el-option label="待支付" value="0" />
-          <el-option label="已支付" value="1" />
-          <el-option label="已发货" value="2" />
-          <el-option label="已完成" value="3" />
-          <el-option label="已取消" value="4" />
+          <el-option label="待支付" :value="0" />
+          <el-option label="已支付" :value="1" />
+          <el-option label="已发货" :value="2" />
+          <el-option label="已完成" :value="3" />
+          <el-option label="已取消" :value="4" />
         </el-select>
-        
+
         <el-button type="primary" @click="handleSearch">搜索</el-button>
         <el-button @click="resetSearch">重置</el-button>
       </div>
-      
-      <el-table :data="orderList" stripe style="width: 100%" border>
+
+      <el-table v-loading="loading" :data="orderList" stripe style="width: 100%" border>
         <el-table-column prop="orderNo" label="订单号" width="180" />
         <el-table-column prop="userName" label="用户名" width="120" />
-        <el-table-column prop="totalAmount" label="总金额" width="120" />
+        <el-table-column label="总金额" width="120">
+          <template #default="scope">
+            ¥{{ Number(scope.row.totalAmount || 0).toFixed(2) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="订单状态" width="120">
           <template #default="scope">
             <el-tag :type="getStatusTagType(scope.row.status)">
@@ -70,7 +74,7 @@
           </template>
         </el-table-column>
       </el-table>
-      
+
       <div class="pagination-container">
         <el-pagination
           v-model:current-page="pagination.currentPage"
@@ -83,36 +87,74 @@
         />
       </div>
     </el-card>
+
+    <el-dialog v-model="viewDialogVisible" title="订单详情" width="800px">
+      <div v-if="currentOrder">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="订单号">{{ currentOrder.orderNo }}</el-descriptions-item>
+          <el-descriptions-item label="用户名">{{ currentOrder.userName }}</el-descriptions-item>
+          <el-descriptions-item label="总金额">¥{{ Number(currentOrder.totalAmount || 0).toFixed(2) }}</el-descriptions-item>
+          <el-descriptions-item label="订单状态">
+            <el-tag :type="getStatusTagType(currentOrder.status)">
+              {{ getStatusText(currentOrder.status) }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="创建时间" :span="2">{{ currentOrder.createTime }}</el-descriptions-item>
+          <el-descriptions-item label="支付时间" :span="2">{{ currentOrder.payTime || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="发货时间" :span="2">{{ currentOrder.deliveryTime || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="完成时间" :span="2">{{ currentOrder.completeTime || '-' }}</el-descriptions-item>
+        </el-descriptions>
+
+        <div class="mt-20">
+          <h3>订单商品</h3>
+          <el-table :data="orderItems" stripe style="width: 100%">
+            <el-table-column prop="productName" label="商品名称" min-width="200" />
+            <el-table-column label="单价" width="100">
+              <template #default="scope">¥{{ Number(scope.row.price || 0).toFixed(2) }}</template>
+            </el-table-column>
+            <el-table-column prop="quantity" label="数量" width="100" />
+            <el-table-column label="小计" width="120">
+              <template #default="scope">¥{{ Number(scope.row.subtotal || 0).toFixed(2) }}</template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="viewDialogVisible = false">关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { Search, View, Van, Close } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { cancelOrderByAdmin, getAdminOrderDetail, getAdminOrderList, shipOrderByAdmin } from '@/api/order'
 
 // 搜索表单
 const searchForm = reactive({
   orderNo: '',
   userName: '',
-  status: ''
+  status: undefined as number | undefined
 })
 
-// 订单列表数据
-const orderList = ref([
-  { orderNo: 'ORD20240101001', userName: 'test1', totalAmount: '¥128.00', status: 3, createTime: '2024-01-01 14:30:00', payTime: '2024-01-01 14:35:00', deliveryTime: '2024-01-02 10:00:00', completeTime: '2024-01-03 15:30:00' },
-  { orderNo: 'ORD20240101002', userName: 'test2', totalAmount: '¥256.00', status: 2, createTime: '2024-01-01 15:20:00', payTime: '2024-01-01 15:25:00', deliveryTime: '2024-01-02 11:00:00', completeTime: '' },
-  { orderNo: 'ORD20240101003', userName: 'test3', totalAmount: '¥99.00', status: 0, createTime: '2024-01-01 16:45:00', payTime: '', deliveryTime: '', completeTime: '' },
-  { orderNo: 'ORD20240101004', userName: 'test4', totalAmount: '¥199.00', status: 1, createTime: '2024-01-01 17:10:00', payTime: '2024-01-01 17:15:00', deliveryTime: '', completeTime: '' },
-  { orderNo: 'ORD20240101005', userName: 'test5', totalAmount: '¥328.00', status: 3, createTime: '2024-01-01 18:30:00', payTime: '2024-01-01 18:35:00', deliveryTime: '2024-01-02 14:00:00', completeTime: '2024-01-04 10:30:00' }
-])
+const loading = ref(false)
+const orderList = ref<any[]>([])
 
 // 分页信息
 const pagination = reactive({
   currentPage: 1,
   pageSize: 10,
-  total: 5
+  total: 0
 })
+
+// 查看订单相关
+const viewDialogVisible = ref(false)
+const currentOrder = ref<any>(null)
+const orderItems = ref<any[]>([])
 
 // 获取订单状态文本
 const getStatusText = (status: number) => {
@@ -139,48 +181,91 @@ const getStatusTagType = (status: number) => {
 }
 
 // 搜索
+const fetchOrderList = async () => {
+  loading.value = true
+  try {
+    const res = await getAdminOrderList({
+      page: pagination.currentPage,
+      size: pagination.pageSize,
+      orderNo: searchForm.orderNo.trim() || undefined,
+      userName: searchForm.userName.trim() || undefined,
+      status: searchForm.status
+    })
+    orderList.value = res.data.list || []
+    pagination.total = res.data.total || 0
+  } catch (error) {
+    ElMessage.error('获取订单列表失败')
+    console.error('获取订单列表失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
 const handleSearch = () => {
-  console.log('搜索条件', searchForm)
-  // 这里可以添加搜索逻辑
+  pagination.currentPage = 1
+  fetchOrderList()
 }
 
 // 重置搜索
 const resetSearch = () => {
   searchForm.orderNo = ''
   searchForm.userName = ''
-  searchForm.status = ''
+  searchForm.status = undefined
   handleSearch()
 }
 
 // 查看订单
-const handleView = (row: any) => {
-  console.log('查看订单', row)
-  // 这里可以添加查看订单逻辑
+const handleView = async (row: any) => {
+  try {
+    const res = await getAdminOrderDetail(row.id)
+    currentOrder.value = res.data
+    orderItems.value = res.data.items || []
+    viewDialogVisible.value = true
+  } catch (error) {
+    ElMessage.error('获取订单详情失败')
+    console.error('获取订单详情失败:', error)
+  }
 }
 
 // 发货
-const handleShip = (row: any) => {
-  ElMessage.success('发货成功')
-  // 这里可以添加发货逻辑
+const handleShip = async (row: any) => {
+  try {
+    await shipOrderByAdmin(row.id)
+    ElMessage.success('发货成功')
+    fetchOrderList()
+  } catch (error) {
+    ElMessage.error('发货失败')
+    console.error('发货失败:', error)
+  }
 }
 
 // 取消订单
-const handleCancel = (row: any) => {
-  ElMessage.success('订单已取消')
-  // 这里可以添加取消订单逻辑
+const handleCancel = async (row: any) => {
+  try {
+    await cancelOrderByAdmin(row.id)
+    ElMessage.success('订单已取消')
+    fetchOrderList()
+  } catch (error) {
+    ElMessage.error('取消订单失败')
+    console.error('取消订单失败:', error)
+  }
 }
 
 // 分页大小变更
 const handleSizeChange = (size: number) => {
   pagination.pageSize = size
-  // 这里可以添加分页逻辑
+  fetchOrderList()
 }
 
 // 当前页变更
 const handleCurrentChange = (current: number) => {
   pagination.currentPage = current
-  // 这里可以添加分页逻辑
+  fetchOrderList()
 }
+
+onMounted(() => {
+  fetchOrderList()
+})
 </script>
 
 <style scoped lang="scss">

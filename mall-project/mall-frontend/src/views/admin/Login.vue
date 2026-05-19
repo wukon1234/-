@@ -1,11 +1,15 @@
 <template>
-  <div class="admin-login-container">
-    <div class="login-form-wrapper">
+  <div class="sci-auth-scene admin-login-root">
+    <div class="hud-corner hud-corner--tl" aria-hidden="true" />
+    <div class="hud-corner hud-corner--br" aria-hidden="true" />
+
+    <div class="login-form-wrapper hud-admin">
       <div class="login-header">
-        <h2>商城管理系统</h2>
-        <p>管理员登录</p>
+        <div class="code-tag">CONTROL_PLANE // PRIV_ROOT</div>
+        <h2>管理轴心</h2>
+        <p>高权限通道 · 请谨慎核对身份</p>
       </div>
-      
+
       <el-form
         ref="loginFormRef"
         :model="loginForm"
@@ -13,15 +17,11 @@
         label-position="top"
         class="login-form"
       >
-        <el-form-item prop="username">
-          <el-input
-            v-model="loginForm.username"
-            placeholder="请输入用户名"
-            prefix-icon="User"
-          />
+        <el-form-item prop="username" label="管理员 ID">
+          <el-input v-model="loginForm.username" placeholder="请输入用户名" prefix-icon="User" />
         </el-form-item>
-        
-        <el-form-item prop="password">
+
+        <el-form-item prop="password" label="访问令牌">
           <el-input
             v-model="loginForm.password"
             type="password"
@@ -30,16 +30,10 @@
             show-password
           />
         </el-form-item>
-        
+
         <el-form-item>
-          <el-button
-            type="primary"
-            class="login-btn"
-            @click="handleLogin"
-            :loading="loading"
-            block
-          >
-            登录
+          <el-button type="primary" class="login-btn" @click="handleLogin" :loading="loading" block>
+            授权进入
           </el-button>
         </el-form-item>
       </el-form>
@@ -78,7 +72,7 @@ const loginRules = reactive({
 
 const handleLogin = async () => {
   if (!loginFormRef.value) return
-  
+
   await loginFormRef.value.validate(async (valid) => {
     if (valid) {
       loading.value = true
@@ -103,59 +97,113 @@ const handleLogin = async () => {
 </script>
 
 <style scoped lang="scss">
-.admin-login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.admin-login-root {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
 }
 
-.login-form-wrapper {
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  padding: 40px;
+.hud-corner {
+  position: fixed;
+  width: 120px;
+  height: 120px;
+  pointer-events: none;
+  opacity: 0.4;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    background: var(--color-anomaly, #f59e0b);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.45);
+  }
+
+  &--tl {
+    top: 22px;
+    left: 22px;
+
+    &::before {
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+    }
+
+    &::after {
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100%;
+    }
+  }
+
+  &--br {
+    bottom: 22px;
+    right: 22px;
+
+    &::before {
+      bottom: 0;
+      right: 0;
+      width: 100%;
+      height: 2px;
+    }
+
+    &::after {
+      bottom: 0;
+      right: 0;
+      width: 2px;
+      height: 100%;
+    }
+  }
+}
+
+.hud-admin {
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: rgba(3, 7, 18, 0.82) !important;
+  backdrop-filter: blur(22px);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow:
+    inset 0 0 72px rgba(245, 158, 11, 0.04),
+    var(--shadow-lg);
+  padding: 40px 36px;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
+  position: relative;
+  z-index: 1;
 }
 
 .login-header {
-  text-align: center;
-  margin-bottom: 30px;
-  
-  h2 {
-    margin: 0 0 10px 0;
-    font-size: 28px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  text-align: left;
+  margin-bottom: 24px;
+
+  .code-tag {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--color-anomaly, #fbbf24);
+    margin-bottom: 14px;
   }
-  
+
+  h2 {
+    margin: 0 0 8px 0;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--color-text-bold, #f1f5f9);
+  }
+
   p {
     margin: 0;
-    color: #666;
-    font-size: 16px;
+    color: var(--color-text-weak, #64748b);
+    font-size: 14px;
   }
 }
 
 .login-form {
   width: 100%;
-  
+
   .login-btn {
-    margin-top: 20px;
-    padding: 12px 0;
-    font-size: 16px;
-    font-weight: 600;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    
-    &:hover {
-      opacity: 0.9;
-    }
+    margin-top: 8px;
+    padding: 13px 0;
+    font-size: 15px;
+    font-weight: 700;
   }
 }
 </style>

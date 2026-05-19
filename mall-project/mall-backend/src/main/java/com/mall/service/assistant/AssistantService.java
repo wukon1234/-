@@ -48,7 +48,7 @@ public interface AssistantService {
      * @param sessionId 会话ID
      * @return 消息列表
      */
-    List<MessageDTO> getMessages(String sessionId);
+    List<MessageDTO> getMessages(String sessionId, Long userId);
     
     /**
      * 删除会话
@@ -65,5 +65,6 @@ public interface AssistantService {
         default void onComplete() {}
         default void onError(Exception e) {}
         default void onProducts(List<Product> products) {}
+        default void onOrders(List<Map<String, Object>> orders) {}
     }
 }

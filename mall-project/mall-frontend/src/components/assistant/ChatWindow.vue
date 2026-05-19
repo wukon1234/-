@@ -9,11 +9,11 @@
       />
     </div>
     <div class="chat-messages" ref="messagesContainer">
-      <div v-if="messages.length === 0" class="empty-state">
+      <div v-if="displayMessages.length === 0" class="empty-state">
         <el-empty description="开始对话吧~" />
       </div>
       <div
-        v-for="msg in messages"
+        v-for="msg in displayMessages"
         :key="msg.id"
         :class="['message-item', msg.role === 'user' ? 'user-message' : 'assistant-message']"
       >
@@ -24,6 +24,10 @@
           <div class="message-text" v-html="formatMessage(msg.content)"></div>
           
           <!-- 商品推荐 -->
+          <OrderRagCards
+            v-if="msg.relatedOrders && msg.relatedOrders.length > 0"
+            :orders="msg.relatedOrders"
+          />
           <ProductRecommendation
             v-if="msg.relatedProducts && msg.relatedProducts.length > 0"
             :products="msg.relatedProducts"
@@ -63,11 +67,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue'
+import { computed, ref, nextTick, watch } from 'vue'
 import { User, ChatDotRound, Loading } from '@element-plus/icons-vue'
 import MessageInput from './MessageInput.vue'
 import ProductRecommendation from './ProductRecommendation.vue'
-import { chat, chatStreamPost, getMessages, type ChatRequest, type ChatResponse } from '@/api/assistant'
+import OrderRagCards from './OrderRagCards.vue'
+import { chat, chatStreamPost, type ChatRequest } from '@/api/assistant'
 import { ElMessage } from 'element-plus'
 
 interface Props {
@@ -90,6 +95,10 @@ const useStream = ref(true) // 默认使用流式对话
 const streaming = ref(false)
 const streamingMessage = ref('')
 const currentStreamAbortController = ref<AbortController | null>(null)
+const optimisticMessages = ref<any[]>([])
+let tempMessageId = 0
+
+const displayMessages = computed(() => [...(props.messages || []), ...optimisticMessages.value])
 
 // 滚动到底部
 const scrollToBottom = () => {
@@ -102,6 +111,9 @@ const scrollToBottom = () => {
 
 // 监听消息变化，自动滚动
 watch(() => props.messages, () => {
+  if (optimisticMessages.value.length > 0) {
+    optimisticMessages.value = []
+  }
   scrollToBottom()
 }, { deep: true })
 
@@ -124,6 +136,15 @@ const handleSend = async (message: string) => {
     message: message.trim()
   }
 
+  optimisticMessages.value.push({
+    id: `tmp-user-${Date.now()}-${tempMessageId++}`,
+    role: 'user',
+    content: request.message,
+    createTime: new Date().toISOString(),
+    relatedProducts: []
+  })
+  scrollToBottom()
+
   try {
     if (useStream.value) {
       // 流式对话
@@ -133,7 +154,8 @@ const handleSend = async (message: string) => {
       await handleNormalChat(request)
     }
   } catch (error) {
-    ElMessage.error('发送失败，请重试')
+    const errorMessage = error instanceof Error ? error.message : '发送失败，请重试'
+    ElMessage.error(errorMessage)
     console.error('发送消息失败:', error)
     streaming.value = false
     streamingMessage.value = ''
@@ -175,12 +197,14 @@ const handleStreamChat = async (request: ChatRequest) => {
         streamingMessage.value += chunk
         scrollToBottom()
       },
-      (relatedProducts) => {
+      (_relatedProducts, _relatedOrders) => {
         if (abortController.signal.aborted) return
         streaming.value = false
         streamingMessage.value = ''
         currentStreamAbortController.value = null
-        emit('send') // 触发重新加载消息（包含商品推荐）
+        void _relatedProducts
+        void _relatedOrders
+        emit('send') // 触发重新加载消息（含商品与订单卡片）
       },
       (error: Error) => {
         if (abortController.signal.aborted) return
@@ -188,7 +212,8 @@ const handleStreamChat = async (request: ChatRequest) => {
         streamingMessage.value = ''
         currentStreamAbortController.value = null
         throw error
-      }
+      },
+      abortController
     )
   } catch (error) {
     streaming.value = false
@@ -209,19 +234,28 @@ const formatTime = (time: string) => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: rgba(7, 11, 22, 0.65);
+  border-radius: 0 var(--radius-lg, 12px) var(--radius-lg, 12px) 0;
+  overflow: hidden;
 
   .chat-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
-    border-bottom: 1px solid #e4e7ed;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(34, 211, 238, 0.15);
+    background: rgba(7, 11, 22, 0.88);
+    backdrop-filter: blur(12px);
 
     h3 {
       margin: 0;
       font-size: 16px;
-      font-weight: 600;
+      font-weight: 700;
+      font-family: var(--font-mono, monospace);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--color-accent-cyan, #22d3ee);
+      text-shadow: 0 0 14px rgba(34, 211, 238, 0.35);
     }
   }
 
@@ -229,7 +263,7 @@ const formatTime = (time: string) => {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    background-color: #f5f5f5;
+    background-color: rgba(4, 6, 12, 0.85);
 
     .empty-state {
       height: 100%;
@@ -247,20 +281,26 @@ const formatTime = (time: string) => {
         flex-direction: row-reverse;
 
         .message-content {
-          background-color: #409eff;
-          color: #fff;
+          background: var(--color-primary-gradient);
+          color: #031018;
           margin-right: 10px;
+          border-radius: 16px 16px 4px 16px;
+          box-shadow: 0 0 24px rgba(34, 211, 238, 0.18);
 
           .message-time {
-            color: rgba(255, 255, 255, 0.8);
+            color: rgba(3, 16, 24, 0.65);
           }
         }
       }
 
       &.assistant-message {
         .message-content {
-          background-color: #fff;
+          background: rgba(15, 23, 42, 0.94);
+          color: var(--color-text-bold, #f1f5f9);
           margin-left: 10px;
+          border-radius: 16px 16px 16px 4px;
+          border: 1px solid rgba(74, 222, 128, 0.18);
+          box-shadow: inset 0 0 48px rgba(34, 211, 238, 0.04);
         }
       }
 
@@ -271,8 +311,8 @@ const formatTime = (time: string) => {
       .message-content {
         max-width: 70%;
         padding: 12px 16px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.04));
+        transition: var(--transition, all 0.28s ease-out);
 
         .message-text {
           word-wrap: break-word;
@@ -287,7 +327,7 @@ const formatTime = (time: string) => {
 
         .message-time {
           font-size: 12px;
-          color: #909399;
+          color: var(--color-text-weak, #64748b);
           margin-top: 4px;
         }
       }
@@ -295,9 +335,10 @@ const formatTime = (time: string) => {
   }
 
   .chat-input {
-    padding: 15px;
-    border-top: 1px solid #e4e7ed;
-    background-color: #fff;
+    padding: 16px;
+    border-top: 1px solid rgba(34, 211, 238, 0.12);
+    background: rgba(7, 11, 22, 0.92);
+    backdrop-filter: blur(14px);
   }
 }
 

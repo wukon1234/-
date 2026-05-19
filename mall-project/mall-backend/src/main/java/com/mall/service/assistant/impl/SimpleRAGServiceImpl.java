@@ -93,6 +93,16 @@ public class SimpleRAGServiceImpl implements RAGService {
     }
     
     @Override
+    public List<Map<String, Object>> searchUserOrders(Long userId, String query, int topK) {
+        if (userId == null) {
+            return new ArrayList<>();
+        }
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("userId", userId);
+        return search(query, DataSource.ORDER, topK, filters);
+    }
+
+    @Override
     public List<Map<String, Object>> search(String query, DataSource dataSource, int topK, Map<String, Object> filters) {
         log.info("RAG检索，数据源: {}, 查询: {}, topK: {}", dataSource, query, topK);
         

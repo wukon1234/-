@@ -27,6 +27,23 @@ export const getProductById = (id: number) => {
   return request.get<Product>(`/products/${id}`)
 }
 
+export const getAdminProductById = (id: number) => {
+  return request.get<Product>(`/products/admin/${id}`)
+}
+
+export const uploadProductImage = (file: File) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post<{
+    url: string
+    fileName: string
+  }>('/products/upload-image', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
 export const getHotProducts = (limit = 8) => {
   return request.get<Product[]>('/products/hot', { params: { limit } })
 }
@@ -50,6 +67,35 @@ export interface AIProductResponse {
 
 export const generateProductContent = (data: AIProductRequest) => {
   return request.post<AIProductResponse>('/products/generate-content', data)
+}
+
+export const addProduct = (product: Product) => {
+  return request.post<boolean>('/products', product)
+}
+
+export const updateProduct = (product: Product) => {
+  return request.put<boolean>('/products', product)
+}
+
+export const deleteProduct = (id: number) => {
+  return request.delete<boolean>(`/products/${id}`)
+}
+
+export const updateProductStatus = (id: number, status: number) => {
+  return request.put<boolean>(`/products/${id}/status`, null, { params: { status } })
+}
+
+export const getAdminProductList = (params: {
+  page?: number
+  size?: number
+  keyword?: string
+  categoryId?: number
+  status?: number
+}) => {
+  return request.get<{
+    list: Product[]
+    total: number
+  }>('/products/admin/list', { params })
 }
 
 

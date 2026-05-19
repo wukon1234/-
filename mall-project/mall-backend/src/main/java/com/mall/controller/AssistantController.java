@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
@@ -37,7 +38,7 @@ public class AssistantController {
             @RequestBody ChatRequest chatRequest) {
         Long userId = (Long) request.getAttribute("userId");
         if (userId == null) {
-            userId = 1L; // 默认用户ID
+            return Result.error(401, "请先登录后再使用智能助手");
         }
         log.info("用户 {} 发送消息: {}", userId, chatRequest.getMessage());
         ChatResponse response = assistantService.chat(userId, chatRequest);
@@ -50,11 +51,23 @@ public class AssistantController {
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStream(
             HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse,
             @RequestBody ChatRequest chatRequest) {
         Long userId = (Long) httpRequest.getAttribute("userId");
         if (userId == null) {
-            userId = 1L; // 默认用户ID
+            SseEmitter denied = new SseEmitter(3000L);
+            try {
+                denied.send(SseEmitter.event().name("error").data("请先登录后再使用智能助手"));
+            } catch (IOException ignored) {
+            }
+            denied.complete();
+            return denied;
         }
+
+        // 防止代理/网关缓冲，确保SSE尽快推送到前端
+        httpResponse.setHeader("Cache-Control", "no-cache");
+        httpResponse.setHeader("Connection", "keep-alive");
+        httpResponse.setHeader("X-Accel-Buffering", "no");
         
         SseEmitter emitter = new SseEmitter(60000L); // 60秒超时
         
@@ -62,8 +75,7 @@ public class AssistantController {
             @Override
             public void onMessage(String chunk) {
                 try {
-                    // 直接发送data: 格式，与前端预期一致
-                    emitter.send("data: " + chunk + "\n\n");
+                    emitter.send(SseEmitter.event().name("message").data(chunk));
                 } catch (IOException e) {
                     log.error("发送SSE消息失败", e);
                     emitter.completeWithError(e);
@@ -72,11 +84,8 @@ public class AssistantController {
             
             @Override
             public void onComplete() {
-                // 流式输出完成后，商品推荐已在保存消息时处理
-                // 这里发送完成信号
                 try {
-                    // 直接发送data: [DONE] 格式，与前端预期一致
-                    emitter.send("data: [DONE]\n\n");
+                    emitter.send(SseEmitter.event().name("message").data("[DONE]"));
                     emitter.complete();
                 } catch (IOException e) {
                     log.error("完成SSE流失败", e);
@@ -87,19 +96,38 @@ public class AssistantController {
             @Override
             public void onError(Exception e) {
                 log.error("流式对话出错", e);
+                try {
+                    emitter.send(SseEmitter.event().name("error").data(e.getMessage()));
+                } catch (IOException ex) {
+                    log.error("发送错误信息失败", ex);
+                }
                 emitter.completeWithError(e);
             }
             
             @Override
             public void onProducts(java.util.List<com.mall.entity.Product> products) {
-                // 发送商品推荐信息
                 try {
                     java.util.Map<String, Object> productsData = new java.util.HashMap<>();
                     productsData.put("products", products);
-                    // 直接发送data: 格式，与前端预期一致
-                    emitter.send("data: " + com.alibaba.fastjson2.JSON.toJSONString(productsData) + "\n\n");
+                    emitter.send(SseEmitter.event().name("message")
+                            .data(com.alibaba.fastjson2.JSON.toJSONString(productsData)));
                 } catch (IOException e) {
                     log.error("发送商品推荐失败", e);
+                }
+            }
+
+            @Override
+            public void onOrders(java.util.List<java.util.Map<String, Object>> orders) {
+                if (orders == null || orders.isEmpty()) {
+                    return;
+                }
+                try {
+                    java.util.Map<String, Object> payload = new java.util.HashMap<>();
+                    payload.put("orders", orders);
+                    emitter.send(SseEmitter.event().name("message")
+                            .data(com.alibaba.fastjson2.JSON.toJSONString(payload)));
+                } catch (IOException e) {
+                    log.error("发送订单摘要失败", e);
                 }
             }
         });
@@ -117,7 +145,7 @@ public class AssistantController {
             @RequestParam(defaultValue = "10") Integer size) {
         Long userId = (Long) request.getAttribute("userId");
         if (userId == null) {
-            userId = 1L;
+            return Result.error(401, "请先登录");
         }
         java.util.Map<String, Object> result = assistantService.getConversations(userId, page, size);
         return Result.success(result);
@@ -127,8 +155,12 @@ public class AssistantController {
      * 获取会话历史消息
      */
     @GetMapping("/conversation/{sessionId}/messages")
-    public Result<?> getMessages(@PathVariable String sessionId) {
-        java.util.List<com.mall.dto.MessageDTO> messages = assistantService.getMessages(sessionId);
+    public Result<?> getMessages(HttpServletRequest request, @PathVariable String sessionId) {
+        Long userId = (Long) request.getAttribute("userId");
+        if (userId == null) {
+            return Result.error(401, "请先登录");
+        }
+        java.util.List<com.mall.dto.MessageDTO> messages = assistantService.getMessages(sessionId, userId);
         return Result.success(messages);
     }
     

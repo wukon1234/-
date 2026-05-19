@@ -1,5 +1,8 @@
 package com.mall.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mall.common.BusinessException;
 import com.mall.common.ResultCode;
 import com.mall.dto.LoginRequest;
@@ -15,13 +18,14 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 用户服务实现类
  */
 @Slf4j
 @Service
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
     
     @Autowired
     private UserMapper userMapper;
@@ -164,6 +168,39 @@ public class UserServiceImpl implements UserService {
         response.setAvatar(user.getAvatar());
         
         return response;
+    }
+    
+    @Override
+    public List<User> getUserList(Integer page, Integer size) {
+        Page<User> userPage = new Page<>(page, size);
+        Page<User> resultPage = userMapper.selectPage(userPage,
+            new LambdaQueryWrapper<User>()
+                .orderByDesc(User::getCreateTime)
+        );
+        log.info("获取用户列表: page={}, size={}, total={}", page, size, resultPage.getTotal());
+        return resultPage.getRecords();
+    }
+    
+    @Override
+    public boolean updateUserStatus(Long id, Integer status) {
+        User user = new User();
+        user.setId(id);
+        user.setStatus(status);
+        user.setUpdateTime(LocalDateTime.now());
+        boolean result = updateById(user);
+        log.info("更新用户状态: id={}, status={}, result={}", id, status, result);
+        return result;
+    }
+    
+    @Override
+    public boolean updateUserRole(Long id, Integer role) {
+        User user = new User();
+        user.setId(id);
+        user.setRole(role);
+        user.setUpdateTime(LocalDateTime.now());
+        boolean result = updateById(user);
+        log.info("更新用户角色: id={}, role={}, result={}", id, role, result);
+        return result;
     }
 }
 
